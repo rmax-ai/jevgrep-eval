@@ -92,17 +92,26 @@ def _tree_bytes(root: Path, *, allowed_paths: set[str] | None = None) -> dict[st
     return result
 
 
-def _copy_tree(source: Path, destination: Path, *, root: Path | None = None) -> None:
+def _copy_tree(
+    source: Path,
+    destination: Path,
+    *,
+    root: Path | None = None,
+    excluded: frozenset[str] | None = None,
+) -> None:
     root = source if root is None else root
     destination.mkdir(parents=True, exist_ok=True)
     for item in sorted(source.iterdir(), key=lambda path: path.name):
-        if is_benchmark_metadata_path(item.relative_to(root)):
+        relative = item.relative_to(root)
+        if is_benchmark_metadata_path(relative):
+            continue
+        if excluded is not None and any(part in excluded for part in relative.parts):
             continue
         target = destination / item.name
         if item.is_symlink():
             target.symlink_to(os.readlink(item))
         elif item.is_dir():
-            _copy_tree(item, target, root=root)
+            _copy_tree(item, target, root=root, excluded=excluded)
             target.chmod(item.stat().st_mode & 0o7777)
         elif item.is_file():
             target.write_bytes(item.read_bytes())
@@ -177,12 +186,16 @@ def capture_patch(
         _git(["git", "init", "--quiet"], repo)
         _git(["git", "config", "user.name", "jevgrep-eval"], repo)
         _git(["git", "config", "user.email", "engine@invalid"], repo)
-        _copy_tree(before_root, repo)
-        _git(["git", "add", "-A", "."], repo)
+        _copy_tree(before_root, repo, excluded=WORKSPACE_EXCLUDED_NAMES)
+        _git(["git", "add", "-A", "-f", "."], repo)
         _git(["git", "commit", "--quiet", "--allow-empty", "-m", "pre-snapshot"], repo)
         _remove_worktree_contents(repo)
-        _copy_tree(after_root, repo)
-        _git(["git", "add", "-A", "."], repo)
+        _copy_tree(after_root, repo, excluded=WORKSPACE_EXCLUDED_NAMES)
+        # --force: the scratch view is defined by WORKSPACE_EXCLUDED_NAMES, not by the
+        # project's own .gitignore. Without it, an ignored file that changed during the
+        # run would be present post-run but absent from the patch, and patch replay
+        # would diverge from the post-run tree.
+        _git(["git", "add", "-A", "-f", "."], repo)
         result = _git(
             ["git", "diff", "--cached", "--binary", "--full-index"],
             repo,
@@ -530,6 +543,10 @@ class Runner:
                 parent_digest=lifecycle.records[-1].record_digest,
                 jsonl_path=stage_log,
             )
+        if completed is not None and completed.stdout:
+            # The stdout stream is the trace source of truth for this run; retain it beside
+            # the record so coverage can be re-derived or audited without replaying the run.
+            (artifact_dir / "agent-stdout.jsonl").write_text(completed.stdout, encoding="utf-8")
         if completed is None:
             trace_parse = parse_trace(())
         else:
@@ -546,7 +563,7 @@ class Runner:
             flags.append("pre-snapshot-mutated")
         if trace_parse.coverage == "partial":
             flags.append("trace-partial")
-        if forced_first:
+        if forced_first and forced_first != "none":
             trace_metrics = derive_metrics(
                 events,
                 set(),
@@ -604,6 +621,8 @@ class Runner:
             created_at=now(),
             finished_at=now(),
             flags=flags,
+            trace_missing=list(trace_parse.missing_dimensions),
+            trace_errors=list(trace_parse.errors),
         )
         artifact_dir.mkdir(parents=True, exist_ok=True)
         save_envelope(envelope, artifact_dir / "run-envelope.json")

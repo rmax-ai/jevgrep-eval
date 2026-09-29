@@ -229,6 +229,8 @@ class RunRecord(StrictModel):
     error: FailureClass | None = None
     task_success: StrictBool | None = None
     trace_coverage: Literal["full", "partial"] = "full"
+    trace_missing: list[StrictStr] = Field(default_factory=list)
+    trace_errors: list[StrictStr] = Field(default_factory=list)
     protocol_id: StrictStr = "v1"
     tree_hash: StrictStr = ""
     envelope_digest: StrictStr = ""

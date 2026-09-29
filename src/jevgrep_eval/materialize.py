@@ -36,10 +36,27 @@ BENCHMARK_METADATA_NAMES = frozenset(
 )
 _CORPUS_ARTIFACT_NAMES = frozenset({"gold", "hidden", "evaluator"})
 
-# Pre-provisioned interpreter environments are run infrastructure, not task content: they
-# contain benign out-of-tree symlinks (bin/python -> managed interpreter) and must not
-# participate in workspace manifests/digests (they are identical across arms per task).
-WORKSPACE_EXCLUDED_NAMES = frozenset({".venv"})
+# Tool-generated artifacts are run infrastructure, not task content. Pre-provisioned
+# interpreter environments (.venv) contain benign out-of-tree symlinks (bin/python ->
+# managed interpreter); populated tool caches (__pycache__, .pytest_cache, ...) appear
+# whenever the agent exercises the project's own tooling. None of them may participate
+# in workspace manifests/digests or patch capture: a cache that exists post-run but is
+# gitignored (and therefore absent from the captured patch) makes patch replay diverge
+# from the post-run tree -- observed live as terminal_status=malformed_patch.
+WORKSPACE_EXCLUDED_NAMES = frozenset(
+    {
+        ".venv",
+        "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".hypothesis",
+        ".tox",
+        ".nox",
+        ".coverage",
+        "node_modules",
+    }
+)
 
 
 def is_benchmark_metadata_path(

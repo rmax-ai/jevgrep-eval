@@ -120,6 +120,11 @@ from `session_meta` / `turn_context` / `token_count`.
 start/end pairing complete, token basis present. Otherwise `partial` with named missing
 dimensions; dependent metrics are `indeterminate` (existing `derive_metrics` semantics).
 
+The raw stream that coverage was derived from is retained per run as
+`agent-stdout.jsonl` next to the run record, and the record carries `trace_missing` /
+`trace_errors` (the named dimensions and per-line parse errors) so any `partial` verdict
+is auditable without replaying the run.
+
 ## 5. Fixtures (committed, sanitized, live captures)
 
 `tests/fixtures/codex-0.157.1/`:
