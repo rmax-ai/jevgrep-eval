@@ -242,11 +242,8 @@ def parse_codex_stream(
             started = pending.pop(start_key, None) if start_key else None
             if started is None:
                 missing.add("start_end_pairing")
-            command = str(
-                item.get("command", started[1].get("command", ""))
-                if item
-                else (started[1].get("command", "") if started else "")
-            )
+            fallback = str(started[1].get("command", "")) if started is not None else ""
+            command = str(item.get("command") or fallback) if item is not None else fallback
             status = item.get("status") if item else None
             events.append(
                 _command_event(

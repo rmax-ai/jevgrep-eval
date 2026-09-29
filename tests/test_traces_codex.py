@@ -235,3 +235,23 @@ def test_failed_command_is_finished_not_partial():
     assert "start_end_pairing" not in parsed.missing_dimensions
     assert parsed.events[0].completed is True
     assert parsed.events[0].exit_code == 1
+
+
+def test_stream_unpaired_item_completed_is_tolerated():
+    """A killed/partial stream can hold item.completed with no paired item.started.
+
+    Live regression: parse crashed on the unpaired-item path (eager evaluation of
+    the pending-start fallback), which would have failed whole records for timeout
+    runs. The event must be kept, flagged, and the parse must not raise.
+    """
+    lines = [
+        (
+            '{"type":"item.completed","item":{"id":"i1","type":"command_execution",'
+            '"command":"/usr/bin/bash -lc \'ls -la\'","status":"completed","exit_code":0}}'
+        ),
+    ]
+    parsed = parse_codex_stream(lines)
+    assert len(parsed.events) == 1
+    assert parsed.events[0].cmd_scrubbed == "ls -la"
+    assert "start_end_pairing" in parsed.missing_dimensions
+    assert parsed.coverage == "partial"

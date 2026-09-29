@@ -3,6 +3,6 @@ model: codex-luna
 effort: medium
 sandbox: workspace-write
 approval_policy: never
-timeout_seconds: 600
+timeout_seconds: 1200
 env_allowlist: [PATH, HOME, CODEX_HOME, LANG, LC_ALL, TZ]
 protocol_id: v1

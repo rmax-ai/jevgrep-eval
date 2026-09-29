@@ -323,8 +323,14 @@ def run_command(
     *,
     timeout_s: float,
     env: dict[str, str] | None = None,
+    partial_stdout_path: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """Execute a command and kill its process group on timeout."""
+    """Execute a command and kill its process group on timeout.
+
+    On timeout, whatever the process wrote to stdout before the kill is drained and,
+    when ``partial_stdout_path`` is given, retained there: the stdout stream is the
+    run's trace source of truth, and a killed run must not lose its trace.
+    """
     started = time.monotonic()
     process = subprocess.Popen(
         argv,
@@ -350,6 +356,25 @@ def run_command(
             except ProcessLookupError:
                 pass
             process.wait()
+        if partial_stdout_path is not None:
+            # TimeoutExpired carries the stream read so far as bytes even in text mode.
+            raw = exc.stdout
+            if isinstance(raw, bytes):
+                partial = raw.decode("utf-8", "replace")
+            elif isinstance(raw, str):
+                partial = raw
+            else:
+                partial = ""
+            try:
+                leftover = process.stdout.read() if process.stdout is not None else ""
+            except (OSError, ValueError):
+                leftover = ""
+            if isinstance(leftover, bytes):
+                leftover = leftover.decode("utf-8", "replace")
+            combined = partial + (leftover or "")
+            if combined:
+                partial_stdout_path.parent.mkdir(parents=True, exist_ok=True)
+                partial_stdout_path.write_text(combined, encoding="utf-8")
         raise TimeoutError(f"command exceeded {timeout_s}s") from exc
     elapsed = time.monotonic() - started
     del elapsed
@@ -448,7 +473,13 @@ class Runner:
                     lifecycle.records[-1].record_digest,
                     jsonl_path=stage_log,
                 )
-                completed = run_command(argv, workspace, timeout_s=timeout, env=env)
+                completed = run_command(
+                    argv,
+                    workspace,
+                    timeout_s=timeout,
+                    env=env,
+                    partial_stdout_path=artifact_dir / "agent-stdout.jsonl",
+                )
                 if completed.returncode != 0:
                     terminal = TerminalStatus.ENV_FAILURE
                     failure = FailureClass.ENV_FAILURE
@@ -543,14 +574,18 @@ class Runner:
                 parent_digest=lifecycle.records[-1].record_digest,
                 jsonl_path=stage_log,
             )
+        stdout_path = artifact_dir / "agent-stdout.jsonl"
         if completed is not None and completed.stdout:
             # The stdout stream is the trace source of truth for this run; retain it beside
             # the record so coverage can be re-derived or audited without replaying the run.
-            (artifact_dir / "agent-stdout.jsonl").write_text(completed.stdout, encoding="utf-8")
-        if completed is None:
-            trace_parse = parse_trace(())
+            # (On timeout the helper already retained whatever was drained before the kill.)
+            stdout_path.write_text(completed.stdout, encoding="utf-8")
+        if stdout_path.is_file():
+            trace_parse = parse_trace(
+                stdout_path.read_text(encoding="utf-8").splitlines(), str(workspace)
+            )
         else:
-            trace_parse = parse_trace(completed.stdout.splitlines(), str(workspace))
+            trace_parse = parse_trace(())
         events = list(trace_parse.events)
         flags: list[str] = []
         simulated = (

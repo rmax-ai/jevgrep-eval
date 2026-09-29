@@ -46,6 +46,48 @@ def test_runner_plumbs_task_hidden_test_command(
     assert not record.task_success
 
 
+def test_timeout_retains_partial_stdout(tmp_path):
+    """A killed run must not lose its trace: partial stdout is drained and retained."""
+    partial = tmp_path / "agent-stdout.jsonl"
+    emitter = (
+        "import json,time;"
+        "print(json.dumps({'type':'item.completed','item':{'id':'i1',"
+        "'type':'command_execution','command':'ls','status':'completed','exit_code':0}}), flush=True);"
+        "time.sleep(30)"
+    )
+    with pytest.raises(TimeoutError):
+        run_command(
+            ["python3", "-c", emitter],
+            ".",
+            timeout_s=0.8,
+            partial_stdout_path=partial,
+        )
+    assert partial.is_file()
+    assert "item.completed" in partial.read_text(encoding="utf-8")
+
+
+def test_timeout_run_parses_partial_trace(mini_tree, tmp_path):
+    """Timeout runs keep their parsed events via the retained partial stream."""
+    emitter = (
+        "import json,time;"
+        "print(json.dumps({'type':'item.completed','item':{'id':'i1',"
+        "'type':'command_execution','command':'ls','status':'completed','exit_code':0}}), flush=True);"
+        "time.sleep(30)"
+    )
+    record = Runner(timeout_s=1).run(
+        run_id="timeout-trace",
+        task_id="click-3533",
+        condition_id="a0",
+        workspace=mini_tree,
+        argv=["python3", "-c", emitter],
+        artifact_dir=tmp_path / "artifacts",
+    )
+    assert record.terminal_status is not None
+    assert record.terminal_status.value == "timeout"
+    assert len(record.events) >= 1
+    assert (tmp_path / "artifacts" / "agent-stdout.jsonl").is_file()
+
+
 def test_forced_first_none_is_not_a_forced_arm(mini_tree, tmp_path):
     """The condition model default is "none"; it must not trigger discovery flags.
 
