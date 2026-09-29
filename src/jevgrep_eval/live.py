@@ -12,6 +12,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import sys
 from collections.abc import Iterable
 from decimal import Decimal
 from pathlib import Path
@@ -719,9 +720,11 @@ def run_live(
         if dry_run:
             print(canonical_json(plan).decode("utf-8"), end="")
             return OK
-    except (FileNotFoundError, OSError):
+    except (FileNotFoundError, OSError) as exc:
+        print(f"run-live missing: {type(exc).__name__}: {exc}", file=sys.stderr)
         return MISSING
-    except (CodexHarnessError, LiveHarnessError, TypeError, ValueError, yaml.YAMLError):
+    except (CodexHarnessError, LiveHarnessError, TypeError, ValueError, yaml.YAMLError) as exc:
+        print(f"run-live validation: {type(exc).__name__}: {exc}", file=sys.stderr)
         return VALIDATION
 
     run_id = str(plan["run_id"])
@@ -735,12 +738,15 @@ def run_live(
         ledger = load_or_create_ledger(ledger_path)
         reserve_for_run(ledger, run_id, condition, experiment)
         save_ledger(ledger, ledger_path)
-    except SpendGateError:
+    except SpendGateError as exc:
         save_ledger(ledger, ledger_path) if "ledger" in locals() else None
+        print(f"run-live spend-gate: {exc}", file=sys.stderr)
         return POLICY
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
+        print(f"run-live missing: {type(exc).__name__}: {exc}", file=sys.stderr)
         return MISSING
-    except (LiveHarnessError, TypeError, ValueError, OSError, yaml.YAMLError):
+    except (LiveHarnessError, TypeError, ValueError, OSError, yaml.YAMLError) as exc:
+        print(f"run-live validation: {type(exc).__name__}: {exc}", file=sys.stderr)
         return VALIDATION
 
     workspace = Path(str(plan["workspace"]))
@@ -833,10 +839,12 @@ def run_live(
             end="",
         )
         return OK
-    except (FileNotFoundError, OSError):
+    except (FileNotFoundError, OSError) as exc:
+        print(f"run-live missing: {type(exc).__name__}: {exc}", file=sys.stderr)
         return MISSING
-    except SpendGateError:
+    except SpendGateError as exc:
         save_ledger(ledger, ledger_path)
+        print(f"run-live spend-gate: {exc}", file=sys.stderr)
         return POLICY
     except (
         CodexHarnessError,
@@ -846,5 +854,6 @@ def run_live(
         ValueError,
         yaml.YAMLError,
         subprocess.CalledProcessError,
-    ):
+    ) as exc:
+        print(f"run-live validation: {type(exc).__name__}: {exc}", file=sys.stderr)
         return VALIDATION
