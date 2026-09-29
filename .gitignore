@@ -20,4 +20,5 @@ runs/
 workspaces/
 cache/
 state/
+*.local.yaml
 *.tmp-*

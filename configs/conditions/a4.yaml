@@ -3,4 +3,5 @@ label: bm25-forced-first
 retrieval_tools: [bm25]
 forced_first: bm25
 oracle_hint: false
+prompt_fragment: "A code-search tool `bm25` is available on PATH for keyword code retrieval over this repository. Begin your investigation by using `bm25` for retrieval before other exploration."
 notes: "Diagnostic prompt-level forced-first arm; noncompliance is retained."

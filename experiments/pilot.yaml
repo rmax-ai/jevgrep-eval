@@ -11,7 +11,7 @@ agent:
   harness: codex
   model: gpt-6-luna
   effort: max
-  isolation: tier_a          # configs/isolation/tier_a.yaml
+  isolation: tier_b          # agent-run tier (provider network allowed; FS minimized; V4/V4b-validated)
 retrieval:
   jg:
     binary: "@dzhng/jevgrep@0.4.3"
