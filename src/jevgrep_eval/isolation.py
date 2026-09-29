@@ -56,6 +56,202 @@ def load_profile(path: Path) -> IsolationProfile:
     )
 
 
+_HOST_BINDING_KEYS = (
+    "home",
+    "tools",
+    "uv",
+    "node",
+    "codex_home_source",
+    "provider_credentials",
+)
+_HOST_BINDING_EXAMPLE = "configs/isolation/host_bindings.example.yaml"
+
+
+def _expand_binding(value: str, replacements: dict[str, str]) -> str:
+    result = value
+    for key, replacement in replacements.items():
+        result = result.replace(f"<{key}>", replacement)
+    if "<" in result or ">" in result:
+        raise ValueError(f"unresolved host binding placeholder: {value}")
+    path = Path(result).expanduser()
+    if not path.is_absolute():
+        raise ValueError(f"host binding must be absolute: {value}")
+    return str(path.resolve())
+
+
+def load_host_bindings(path: Path) -> dict[str, str]:
+    """Load the operator's absolute host paths without touching those paths."""
+    if not path.is_file():
+        raise ValueError(
+            f"host bindings file is missing: {path}; copy "
+            f"{_HOST_BINDING_EXAMPLE} to configs/isolation/host_bindings.local.yaml "
+            "and fill the host-specific paths"
+        )
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise ValueError(f"cannot load host bindings: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise TypeError("host bindings must be a mapping")
+    missing = [key for key in _HOST_BINDING_KEYS if key not in payload]
+    if missing:
+        raise ValueError(f"host bindings missing required keys: {', '.join(missing)}")
+    if any(not isinstance(payload[key], str) for key in _HOST_BINDING_KEYS):
+        raise ValueError("host binding values must be strings")
+
+    home = str(Path.home().expanduser().resolve())
+    replacements = {"home": home}
+    result: dict[str, str] = {}
+    for key in _HOST_BINDING_KEYS:
+        result[key] = _expand_binding(str(payload[key]), {**replacements, **result})
+    # Preserve additional string entries for forward-compatible local files,
+    # while keeping the public return type strict.
+    for key, value in payload.items():
+        if key in result:
+            continue
+        if not isinstance(value, str):
+            raise TypeError(f"host binding {key} must be a string")
+        result[str(key)] = _expand_binding(value, {**replacements, **result})
+    return result
+
+
+def _absolute_path(value: Path | str, label: str) -> str:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        raise ValueError(f"{label} must be absolute: {value}")
+    return str(path.resolve())
+
+
+def _ro_bind(argv: list[str], source: str, target: str) -> None:
+    argv.extend(["--ro-bind", source, target])
+
+
+def agent_bwrap_argv(
+    *,
+    workspace: Path,
+    codex_home: Path,
+    bindings: dict[str, str],
+    engine_repo: Path,
+    engine_venv: Path,
+    bm25_tool: Path | None = None,
+    bm25_index: Path | None = None,
+) -> list[str]:
+    """Assemble the validated Tier-B agent command without executing it."""
+    workspace_path = _absolute_path(workspace, "workspace")
+    codex_home_path = _absolute_path(codex_home, "codex_home")
+    engine_repo_path = _absolute_path(engine_repo, "engine_repo")
+    engine_venv_path = _absolute_path(engine_venv, "engine_venv")
+    required = set(_HOST_BINDING_KEYS)
+    missing = sorted(required - bindings.keys())
+    if missing:
+        raise ValueError(f"host bindings missing required keys: {', '.join(missing)}")
+    resolved = {
+        key: _absolute_path(bindings[key], f"bindings[{key!r}]")
+        for key in _HOST_BINDING_KEYS
+    }
+    if (bm25_tool is None) != (bm25_index is None):
+        raise ValueError("bm25_tool and bm25_index must be provided together")
+
+    node = resolved["node"]
+    tools = resolved["tools"]
+    uv = resolved["uv"]
+    argv = [
+        "bwrap",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-cgroup",
+        "--die-with-parent",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+    ]
+
+    # Keep host mounts sorted by their target path.  The fixed system mounts
+    # are part of the validated recipe, while host mounts are read-only.
+    tool_binaries = (
+        "awk",
+        "bash",
+        "cat",
+        "env",
+        "find",
+        "grep",
+        "head",
+        "id",
+        "ls",
+        "mawk",
+        "python3",
+        "python3.13",
+        "sed",
+        "tail",
+        "wc",
+    )
+    mounts = [
+        ("/etc/hosts", "/etc/hosts"),
+        ("/etc/nsswitch.conf", "/etc/nsswitch.conf"),
+        ("/etc/resolv.conf", "/etc/resolv.conf"),
+        ("/etc/ssl", "/etc/ssl"),
+        ("/usr/lib", "/usr/lib"),
+        *(
+            (f"/usr/bin/{name}", f"/usr/bin/{name}")
+            for name in tool_binaries
+        ),
+        (f"{tools}/rg", f"{tools}/rg"),
+        (f"{uv}/python/cpython-3.12-linux-aarch64-gnu", f"{uv}/python/cpython-3.12-linux-aarch64-gnu"),
+        (f"{uv}/python/cpython-3.12.13-linux-aarch64-gnu", f"{uv}/python/cpython-3.12.13-linux-aarch64-gnu"),
+        (node, node),
+    ]
+    for source, target in sorted(mounts, key=lambda pair: pair[1]):
+        _ro_bind(argv, source, target)
+
+    argv.extend(
+        [
+            "--bind",
+            workspace_path,
+            "/workspace",
+            "--bind",
+            codex_home_path,
+            "/codex-home",
+            "--chdir",
+            "/workspace",
+            "--setenv",
+            "PATH",
+            f"{node}/bin:/workspace/.venv/bin:/usr/bin:/bin",
+            "--setenv",
+            "HOME",
+            "/codex-home",
+            "--setenv",
+            "CODEX_HOME",
+            "/codex-home",
+            "--setenv",
+            "LANG",
+            "C.UTF-8",
+            "--setenv",
+            "TERM",
+            "dumb",
+        ]
+    )
+    _ro_bind(argv, resolved["provider_credentials"], "/codex-home/.config/jevgrep")
+    if bm25_tool is not None and bm25_index is not None:
+        bm25_tool_path = _absolute_path(bm25_tool, "bm25_tool")
+        bm25_index_path = _absolute_path(bm25_index, "bm25_index")
+        _ro_bind(argv, bm25_tool_path, "/usr/local/bin/bm25")
+        _ro_bind(argv, bm25_index_path, "/bm25.index")
+        _ro_bind(argv, engine_repo_path, engine_repo_path)
+        _ro_bind(argv, engine_venv_path, engine_venv_path)
+    return argv
+
+
 def bwrap_argv(
     workspace: Path,
     *,

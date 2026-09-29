@@ -13,6 +13,12 @@ Tier B keeps the provider network for Jevgrep while applying the same
 filesystem minimization and deny-read probes. Tier B's residual egress risk is
 documented, not hidden.
 
+Agent runs execute on the network-allowed tier with a fully cleared child
+environment (`subprocess env={}`); only explicit `--setenv` values reach the
+agent. An inherited `SSL_CERT_FILE` pointing outside the sandbox broke TLS
+during validation (V4b). The recipe binds `/etc/ssl` and relies on system trust
+roots.
+
 Snapshots reject special files, escaping symlinks, `.git`, and policy-violating
 paths. The runner hashes around a snapshot twice and captures patches in a
 private throwaway git worktree. Stage 0.5 V4 (2026-09-29) validated the exact

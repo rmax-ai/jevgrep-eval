@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 
+from . import live
 from .costing import SpendLedger, load_pricing
 from .envelope import verify_run
 from .isolation import bwrap_argv, probe_artifacts
@@ -47,6 +48,12 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--task", required=True)
     run.add_argument("--arm", required=True)
     run.add_argument("--mock", action="store_true")
+    run.add_argument("--live", action="store_true")
+    run.add_argument("--dry-run", action="store_true")
+    run.add_argument("--runs", type=Path, default=Path("runs"))
+    run.add_argument("--ledger", type=Path, default=Path("runs/ledger.json"))
+    run.add_argument("--rep", type=int, default=0)
+    run.add_argument("--bindings", type=Path)
 
     evaluate = subparsers.add_parser("evaluate")
     evaluate.add_argument("run_dir", type=Path)
@@ -129,11 +136,28 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "run":
             if not args.config.is_file():
                 return MISSING
-            if not args.mock:
+            if args.mock and (args.live or args.dry_run):
+                return USAGE
+            if args.mock:
+                sys.stdout.write("protocol demonstration: simulated-fixture\n")
+                return OK
+            if not args.live and not args.dry_run:
                 sys.stderr.write("live execution requires the later verified harness path\n")
                 return POLICY
-            sys.stdout.write("protocol demonstration: simulated-fixture\n")
-            return OK
+            repository_root = Path(__file__).resolve().parents[2]
+            condition = repository_root / "configs" / "conditions" / f"{args.arm}.yaml"
+            return live.run_live(
+                runs_root=args.runs,
+                ledger_path=args.ledger,
+                experiment_path=args.config,
+                condition_path=condition,
+                corpus_root=repository_root / "corpus",
+                task_id=args.task,
+                arm=args.arm,
+                rep=args.rep,
+                dry_run=args.dry_run,
+                bindings_path=args.bindings,
+            )
         if args.command in {"evaluate", "score"}:
             if not args.run_dir.exists():
                 return MISSING
