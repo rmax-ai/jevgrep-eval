@@ -1,0 +1,56 @@
+diff --git a/test/fixtures/nested-input-inherit.js b/test/fixtures/nested-input-inherit.js
+new file mode 100755
+index 0000000000000000000000000000000000000000..7c7acb35de11825bfb513c05e915da504aa4e019
+--- /dev/null
++++ b/test/fixtures/nested-input-inherit.js
+@@ -0,0 +1,17 @@
++#!/usr/bin/env node
++import process from 'node:process';
++import {execa, execaSync} from '../../index.js';
++import {foobarString} from '../helpers/input.js';
++
++const [optionName, stdioOptionString, isSyncString] = process.argv.slice(2);
++const execaMethod = isSyncString === 'true' ? execaSync : execa;
++const options = {
++	input: foobarString,
++	[optionName]: JSON.parse(stdioOptionString),
++};
++
++if (optionName === 'stdin') {
++	options.stdout = 'inherit';
++}
++
++await execaMethod('stdin.js', options);
+diff --git a/test/io/input-option.js b/test/io/input-option.js
+index 1aa372635321afa3c99af5c7469667697ba70794..a277b9828e6eb3072a07c10511af0921fa6d79ec 100644
+--- a/test/io/input-option.js
++++ b/test/io/input-option.js
+@@ -9,6 +9,7 @@ import {
+ 	runScriptSync,
+ } from '../helpers/run.js';
+ import {
++	foobarString,
+ 	foobarUint8Array,
+ 	foobarBuffer,
+ 	foobarArrayBuffer,
+@@ -32,6 +33,20 @@ test('input option can be a Buffer - sync', testInput, foobarBuffer, runExecaSyn
+ test('input option can be used with $', testInput, 'foobar', runScript);
+ test('input option can be used with $.sync', testInput, 'foobar', runScriptSync);
+ 
++const testInputIgnoresInheritedStdin = async (t, optionName, stdioOption, isSync) => {
++	const {stdout} = await execa('nested-input-inherit.js', [optionName, JSON.stringify(stdioOption), `${isSync}`], {input: foobarString});
++	t.is(stdout, foobarString);
++};
++
++test('input option ignores stdin "inherit"', testInputIgnoresInheritedStdin, 'stdin', 'inherit', false);
++test('input option ignores stdin ["inherit"]', testInputIgnoresInheritedStdin, 'stdin', ['inherit'], false);
++test('input option ignores stdio "inherit"', testInputIgnoresInheritedStdin, 'stdio', 'inherit', false);
++test('input option ignores stdio[0] "inherit"', testInputIgnoresInheritedStdin, 'stdio', ['inherit', 'inherit', 'pipe'], false);
++test.serial('input option ignores stdin "inherit" - sync', testInputIgnoresInheritedStdin, 'stdin', 'inherit', true);
++test.serial('input option ignores stdin ["inherit"] - sync', testInputIgnoresInheritedStdin, 'stdin', ['inherit'], true);
++test.serial('input option ignores stdio "inherit" - sync', testInputIgnoresInheritedStdin, 'stdio', 'inherit', true);
++test.serial('input option ignores stdio[0] "inherit" - sync', testInputIgnoresInheritedStdin, 'stdio', ['inherit', 'inherit', 'pipe'], true);
++
+ const testInvalidInput = async (t, input, execaMethod) => {
+ 	t.throws(() => {
+ 		execaMethod('empty.js', {input});

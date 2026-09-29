@@ -1,0 +1,6 @@
+id: a3
+label: bm25-available
+retrieval_tools: [bm25]
+forced_first: none
+oracle_hint: false
+notes: "Primary deterministic BM25 availability arm."

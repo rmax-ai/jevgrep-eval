@@ -1,0 +1,1 @@
+{"files":["src/click/_termui_impl.py"],"gold_patch_sha256":"db1762d8e6d2e3939ae5fac538e12db6210e1ef36506901ee2ef7e0a1e04a282","gold_sha":"fc5c7f45da0a4443f60ba2d322fe4bf829977739","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"click-3764"}

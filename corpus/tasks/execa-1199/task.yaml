@@ -1,0 +1,47 @@
+task_id: execa-1199
+repo_id: sindresorhus__execa
+base_sha: 2f1012fc3e7be6bcf520e3f3f5459cc8aa2769d2
+gold_sha: 1ac5b91eaaed89cc8b6a3d123e1af42ed65f9c33
+fix_ref: https://github.com/sindresorhus/execa/pull/1199
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Node 24-specific deprecation
+  warning. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- lib/arguments/shell.js
+- lib/methods/main-async.js
+- lib/methods/main-sync.js
+gold_evidence_files: *id001
+hidden_test_patch: tasks/execa-1199/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- test/helpers/fixtures-directory.js
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/sindresorhus__execa/pnpm-store
+expected_test_seconds: 60.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/execa-1199/gold.patch
+  sha256: ceeb90c1153bcc77c74f035b8cd8cec392ab449954e5bb465aa049e1a184b0e6
+  role: evaluator-gold-patch
+- path: tasks/execa-1199/hidden_tests.patch
+  sha256: ead0ea13124e669dfe7d774f1b474ede929099d339a1aa23c761035c12fc3aad
+  role: evaluator-hidden-tests
+- path: tasks/execa-1199/admission.json
+  sha256: 1e57cf5b564113159d151fe69e110cf0d1be0be887b75274c5d7b65d412dfab5
+  role: admission-evidence
+- path: tasks/execa-1199/sanitization.md
+  sha256: 4811ef6aca6f4884df9dba8688bd0524f0972ef1a6ae7c1d74b0c18d9cc22ca0
+  role: sanitization-review
+- path: tasks/execa-1199/gold-evidence.json
+  sha256: 72fafd4753d55080ec9ba07ec9b0e52b91cbb4dcf51e7e3f753fce33fc1eeea0
+  role: evaluator-gold-evidence

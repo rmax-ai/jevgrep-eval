@@ -1,0 +1,51 @@
+task_id: jinja-1984
+repo_id: pallets__jinja
+base_sha: 20be10e566a505cc47bdec5fa6ad56d5fbdfb4ae
+gold_sha: 3ef3ba885bc7a465b022abfd525d6bb4a1c8dd3c
+fix_ref: https://github.com/pallets/jinja/pull/1984
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: How int filter handles
+  scientific notation. Preserve the established public API and behavior outside that
+  case.'
+changed_files: &id001
+- src/jinja2/filters.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/jinja-1984/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_filters.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__jinja/uv
+expected_test_seconds: 30.0
+stratum: configuration-registration
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/jinja-1984/gold.patch
+  sha256: c87b665e06f7a5348ac18bca32303025caf94bba1b7e7c79da0d3bc4d991fc62
+  role: evaluator-gold-patch
+- path: tasks/jinja-1984/hidden_tests.patch
+  sha256: 51f1ade6de528f2249cdc5c7e2ef70b8b61b471b6532b207f9166f589021ce3f
+  role: evaluator-hidden-tests
+- path: tasks/jinja-1984/admission.json
+  sha256: 7bb9e95d86b9c5b303a5db8341777f6f7574e52edc1aa7c73ad10da5c69fd49b
+  role: admission-evidence
+- path: tasks/jinja-1984/sanitization.md
+  sha256: 202c3645f8a325a9ad6c854d03d5954d1d6f689ebccc788dfa372dc9747f65a3
+  role: sanitization-review
+- path: tasks/jinja-1984/gold-evidence.json
+  sha256: e8575fc344eb59626bb6ed22172bbd82d7eee0a1fbc47db84121d11c35bacd00
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_filters.py

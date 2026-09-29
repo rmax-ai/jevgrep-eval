@@ -1,0 +1,6 @@
+id: a1
+label: jevgrep-available
+retrieval_tools: [jg]
+forced_first: none
+oracle_hint: false
+notes: "Primary full-configuration Jevgrep availability arm."

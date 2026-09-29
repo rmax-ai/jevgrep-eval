@@ -1,0 +1,44 @@
+task_id: attrs-1593
+repo_id: python-attrs__attrs
+base_sha: 6851ab593cd25f3c14393e9355d57d22bec2a074
+gold_sha: 97f8d175656bc03c373a1c9038048a4d312c307c
+fix_ref: https://github.com/python-attrs/attrs/pull/1593
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: ClassVar forward reference
+  detection. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- src/attr/_make.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/attrs-1593/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_annotations.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-attrs__attrs/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/attrs-1593/gold.patch
+  sha256: 060e16d314b923de972e23c62e77653e736a4600b2427eb4f982e05691035ef2
+  role: evaluator-gold-patch
+- path: tasks/attrs-1593/hidden_tests.patch
+  sha256: 020e7d4fd4271c5d19b3b55da7a2d0fd51b28ffab22a4ed06ccbe5a795ed91d0
+  role: evaluator-hidden-tests
+- path: tasks/attrs-1593/admission.json
+  sha256: 2e1cc53b72ab496568c666928eac615061ec18d7603a7d9cf651c156517129d6
+  role: admission-evidence
+- path: tasks/attrs-1593/sanitization.md
+  sha256: 616010881e6a002236ff4c7c611a8b8459c6b75073aa168e586ddfea93a2c58b
+  role: sanitization-review
+- path: tasks/attrs-1593/gold-evidence.json
+  sha256: 19a97d937e803e676ec3552ac54766379b855adce715f9797b6ce10722e1511d
+  role: evaluator-gold-evidence

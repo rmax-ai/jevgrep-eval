@@ -1,0 +1,23 @@
+diff --git a/test/helpers/fixtures-directory.js b/test/helpers/fixtures-directory.js
+index 0056f1ced88a08849591c4411a77b692784d0443..e55cae7e259645242d7a8b4bf8bf4372b5d4ea16 100644
+--- a/test/helpers/fixtures-directory.js
++++ b/test/helpers/fixtures-directory.js
+@@ -1,8 +1,18 @@
+ import path from 'node:path';
+ import process from 'node:process';
+ import {fileURLToPath} from 'node:url';
++import logProcessErrors from 'log-process-errors';
+ import pathKey from 'path-key';
+ 
++// Make tests fail if any warning (such as a deprecation warning) is emitted
++logProcessErrors({
++	onError(error, event) {
++		if (event === 'warning') {
++			throw error;
++		}
++	},
++});
++
+ export const PATH_KEY = pathKey();
+ export const FIXTURES_DIRECTORY_URL = new URL('../fixtures/', import.meta.url);
+ // @todo: use import.meta.dirname after dropping support for Node <20.11.0

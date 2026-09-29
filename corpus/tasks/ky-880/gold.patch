@@ -1,0 +1,54 @@
+diff --git a/source/types/ky.ts b/source/types/ky.ts
+index dfb03d0311ee8830d98cf62110763018f5b2cc78..473250150f555fe9651e16bec89619fcab91d52d 100644
+--- a/source/types/ky.ts
++++ b/source/types/ky.ts
+@@ -97,6 +97,8 @@ export type KyInstance = {
+ 
+ 	By default, `.extend()` deep-merges options: hooks are appended, headers are merged, and search parameters are accumulated. Use `replaceOption` when you want to fully replace a merged property instead.
+ 
++	When extending an instance, signals are combined. Use `replaceOption(signal)` to replace inherited signals, or `signal: undefined` to remove them.
++
+ 	You can also refer to parent defaults by providing a function to `.extend()`.
+ 
+ 	@example
+diff --git a/source/utils/merge.ts b/source/utils/merge.ts
+index aa046c408ef96653139a749dfc39a35780200b76..922f01757d6390d80c8135c7d812f55ee8f0a5a1 100644
+--- a/source/utils/merge.ts
++++ b/source/utils/merge.ts
+@@ -220,16 +220,21 @@ const deepMergeInternal = <T>(isRoot: boolean, ...sources: Array<Partial<T> | un
+ 			returnValue = [...returnValue, ...source];
+ 		} else if (isObject(source)) {
+ 			for (let [key, value] of Object.entries(source)) {
+-				// Special handling for AbortSignal instances
+-				if (key === 'signal' && value instanceof globalThis.AbortSignal) {
+-					signals.push(value);
+-					continue;
+-				}
+-
+ 				const replaceState = getReplaceState(value);
+ 				const {isReplace} = replaceState;
+ 				value = replaceState.value;
+ 
++				const isRootSignal = isRoot && key === 'signal';
++				if (isRootSignal && (isReplace || value === undefined)) {
++					signals.length = 0;
++				}
++
++				// Special handling for AbortSignal instances at the root options level
++				if (isRootSignal && value instanceof globalThis.AbortSignal) {
++					signals.push(value);
++					continue;
++				}
++
+ 				// Special handling for context - shallow merge only
+ 				if (key === 'context') {
+ 					if (value !== undefined && value !== null && (!isObject(value) || Array.isArray(value))) {
+@@ -312,7 +317,7 @@ const deepMergeInternal = <T>(isRoot: boolean, ...sources: Array<Partial<T> | un
+ 		} else {
+ 			// When AbortSignal.any is not available, use the last signal
+ 			// This maintains the previous behavior before signal merging was added
+-			// This can be remove when the `supportsAbortSignal` check is removed.`
++			// This can be removed when the `supportsAbortSignal` check is removed.
+ 			returnValue.signal = signals.at(-1);
+ 		}
+ 	}

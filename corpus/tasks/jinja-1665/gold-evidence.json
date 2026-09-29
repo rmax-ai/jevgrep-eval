@@ -1,0 +1,1 @@
+{"files":["src/jinja2/idtracking.py"],"gold_patch_sha256":"b10a207ba45589f51f52f79292999e0fc951e3bbb5dc0c8790b47a5c57be8e5f","gold_sha":"c8fdce1e0333f1122b244b03a48535fdd7b03d91","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"jinja-1665"}

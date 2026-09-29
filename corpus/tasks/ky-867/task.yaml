@@ -1,0 +1,46 @@
+task_id: ky-867
+repo_id: sindresorhus__ky
+base_sha: 6edddd986f2f6a9c7d91e851d9b9a48df439d328
+gold_sha: 06375efbacfc1bdc96f7a4de7560684b765e1274
+fix_ref: https://github.com/sindresorhus/ky/pull/867
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: `extend()` dropping numeric
+  `retry` limit when merging with an object. Preserve the established public API and
+  behavior outside that case.'
+changed_files: &id001
+- source/utils/merge.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/ky-867/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- test/retry.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/sindresorhus__ky/pnpm-store
+expected_test_seconds: 60.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/ky-867/gold.patch
+  sha256: f5ee7f95be91c2b7ad6c4392e2e1787d95694f0bba1fc30d99f1b2f0f82f61c6
+  role: evaluator-gold-patch
+- path: tasks/ky-867/hidden_tests.patch
+  sha256: ba21d291a34eb3b3fa37b1b29cdb9da57133ed84d285056d992e5784ab864233
+  role: evaluator-hidden-tests
+- path: tasks/ky-867/admission.json
+  sha256: 0ad1deb7547d603721a36c68f4cb1b2166302d6df52d35b82a4ab304baaf4e92
+  role: admission-evidence
+- path: tasks/ky-867/sanitization.md
+  sha256: d8613cafa73dc8ee7334e1cb0da279a433f6b24a722f248c97c34b455a0b54af
+  role: sanitization-review
+- path: tasks/ky-867/gold-evidence.json
+  sha256: 920a200c8f04a726b843f40554abe9f1032e09ede1c1897144dcf6a74b282d74
+  role: evaluator-gold-evidence

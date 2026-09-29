@@ -1,0 +1,48 @@
+task_id: ky-881
+repo_id: sindresorhus__ky
+base_sha: 0bda554d448c1b57c17a5c18114432c02465d467
+gold_sha: 99644d0169138eb0c42718f06862061288f05a96
+fix_ref: https://github.com/sindresorhus/ky/pull/881
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Progress callbacks for
+  empty request and response bodies. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- source/types/options.ts
+- source/utils/body.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/ky-881/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- test/browser.ts
+- test/stream.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/sindresorhus__ky/pnpm-store
+expected_test_seconds: 60.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/ky-881/gold.patch
+  sha256: 25d2146a6723a7bd425fe680b2d9958eb34d1ca27900a43c94ef0191d1722865
+  role: evaluator-gold-patch
+- path: tasks/ky-881/hidden_tests.patch
+  sha256: 25d93777118c3d4c89ccd4757aae05c7c718af5297ec436ce550cfeeeab245d0
+  role: evaluator-hidden-tests
+- path: tasks/ky-881/admission.json
+  sha256: ad6be45951ce2c691b8d4c0a53f6417216e50888e29e75d0ce1dc65fa21a90a9
+  role: admission-evidence
+- path: tasks/ky-881/sanitization.md
+  sha256: 79a07d3972a5984b28735e42118b066c58a6ff5e65e593118da062a27f68e5f0
+  role: sanitization-review
+- path: tasks/ky-881/gold-evidence.json
+  sha256: ef2fb70b8934c50c5e994942eeee8d29129117ea73f0eaa5196aba5d8790da09
+  role: evaluator-gold-evidence

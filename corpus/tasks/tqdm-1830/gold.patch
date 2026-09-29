@@ -1,0 +1,15 @@
+diff --git a/tqdm/contrib/concurrent.py b/tqdm/contrib/concurrent.py
+index 88dc298503c84ac10889166b9d549bef4b1fbd4c..955e9e3a1b034c875ed0d642cf436b6502d70bc2 100644
+--- a/tqdm/contrib/concurrent.py
++++ b/tqdm/contrib/concurrent.py
+@@ -100,8 +100,8 @@ def _get_interpreter_init(tqdm_class, lock_queue_id):
+ 
+ 
+ def _min_map_len(iterables):
+-    """min(map(length_hint, iterables))"""
+-    return min(n for it in iterables if (n := length_hint(it, -1)) >= 0)
++    """min(map(length_hint, iterables), default=0)"""
++    return min((n for it in iterables if (n := length_hint(it, -1)) >= 0), default=0)
+ 
+ 
+ def _executor_map(

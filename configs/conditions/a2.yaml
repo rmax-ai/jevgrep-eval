@@ -1,0 +1,6 @@
+id: a2
+label: jevgrep-forced-first
+retrieval_tools: [jg]
+forced_first: jg
+oracle_hint: false
+notes: "Diagnostic prompt-level forced-first arm; noncompliance is retained."

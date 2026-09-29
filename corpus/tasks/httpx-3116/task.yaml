@@ -1,0 +1,45 @@
+task_id: httpx-3116
+repo_id: encode__httpx
+base_sha: df5345140e09ac6c2de0d9589bcd6f3e31c6aa3f
+gold_sha: 6d852d319acd5d97caf14037dff15ede04b37542
+fix_ref: https://github.com/encode/httpx/pull/3116
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Client.send() timeout when
+  used with a new Request instance. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- httpx/_client.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/httpx-3116/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_timeouts.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/encode__httpx/uv
+expected_test_seconds: 30.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/httpx-3116/gold.patch
+  sha256: 0eb73ba8777fb787d8dacc8c88bbac8ff3205c6e6a0d3d5a9ada2245e3e2cb9c
+  role: evaluator-gold-patch
+- path: tasks/httpx-3116/hidden_tests.patch
+  sha256: ae0987ef943d28a281e103f89470764fec6fcf8df6fcad0dd0558624357032a8
+  role: evaluator-hidden-tests
+- path: tasks/httpx-3116/admission.json
+  sha256: c36d9774e7ad65586a14924e7e5259712e78585fa70e75d7c6e66bc967a0754c
+  role: admission-evidence
+- path: tasks/httpx-3116/sanitization.md
+  sha256: f487436dc56699e488d5a18adeb5687c7deba061d8b89407d988c4449c069b59
+  role: sanitization-review
+- path: tasks/httpx-3116/gold-evidence.json
+  sha256: 3293e1f87711ce537fbf5652e0b83e04abcb4cec5b7ab3979d8323d0115d81b3
+  role: evaluator-gold-evidence

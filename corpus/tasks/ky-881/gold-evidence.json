@@ -1,0 +1,1 @@
+{"files":["source/types/options.ts","source/utils/body.ts"],"gold_patch_sha256":"25d2146a6723a7bd425fe680b2d9958eb34d1ca27900a43c94ef0191d1722865","gold_sha":"99644d0169138eb0c42718f06862061288f05a96","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"ky-881"}

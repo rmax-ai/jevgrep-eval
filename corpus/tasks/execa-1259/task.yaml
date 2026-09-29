@@ -1,0 +1,48 @@
+task_id: execa-1259
+repo_id: sindresorhus__execa
+base_sha: 499fe800361e6b383b0085f635a69fd27e6cf447
+gold_sha: e7717338a35aa53196ba3cad1498a1a50cd3905c
+fix_ref: https://github.com/sindresorhus/execa/pull/1259
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: `preferLocal` argument
+  escaping edge-case on Windows. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- lib/arguments/command-file.js
+- lib/arguments/options.js
+gold_evidence_files: *id001
+hidden_test_patch: tasks/execa-1259/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- test/arguments/command-resolution.js
+- test/terminate/timeout.js
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/sindresorhus__execa/pnpm-store
+expected_test_seconds: 60.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/execa-1259/gold.patch
+  sha256: 113b7ffc54c81971b0f04cde52db491c3c6d44a1f37b128e2e46cecd5cfa2e9c
+  role: evaluator-gold-patch
+- path: tasks/execa-1259/hidden_tests.patch
+  sha256: ec507481b4195dd28b5889b1354bbe1c3763dd93c122aa399718af2e0c0988bd
+  role: evaluator-hidden-tests
+- path: tasks/execa-1259/admission.json
+  sha256: d39479241f30bf88e79a5b8a0cdad6e2dd82f0d9636cad123706b4e9c72ca114
+  role: admission-evidence
+- path: tasks/execa-1259/sanitization.md
+  sha256: 48b1ea1114a4f16c100bfd0c8eb03ec0ba99612ff6531637e9720bdd43d6f238
+  role: sanitization-review
+- path: tasks/execa-1259/gold-evidence.json
+  sha256: 7bbe01ae051129f1c205a5637a2067db149f382d8664208ed2c5f549c5cc8962
+  role: evaluator-gold-evidence

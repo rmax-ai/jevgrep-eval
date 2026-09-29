@@ -1,0 +1,45 @@
+task_id: tomlkit-550
+repo_id: python-poetry__tomlkit
+base_sha: 21a4942ed31e773061c9fc047d55b1bb3c637ee3
+gold_sha: 495a42ecc9119eaaeb895def0fd025a71cd1cf60
+fix_ref: https://github.com/python-poetry/tomlkit/pull/550
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Top-level scalar captured
+  by a table rendered from a dotted key. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- tomlkit/container.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/tomlkit-550/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_toml_document.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-poetry__tomlkit/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/tomlkit-550/gold.patch
+  sha256: d4f56bf3f1adc89c047662479b8cbf45f392bfd46338bb4afec43ba471cb9016
+  role: evaluator-gold-patch
+- path: tasks/tomlkit-550/hidden_tests.patch
+  sha256: be9e07be193a9acaf8f1d747aec26a49a5edc865d66d9bd306eccace5f7a48fd
+  role: evaluator-hidden-tests
+- path: tasks/tomlkit-550/admission.json
+  sha256: 5eeda5eaff9f46526dbb88c2734bd28649bed5c029f72df40de880f83d010951
+  role: admission-evidence
+- path: tasks/tomlkit-550/sanitization.md
+  sha256: 0c3f427ce513182b8e3095cf75f797ab260199c54b984065670423f086780358
+  role: sanitization-review
+- path: tasks/tomlkit-550/gold-evidence.json
+  sha256: 70bcd5a69d9a8c2f1920cba03666eecdc78f25a0131064c12df30d6f6fb3d462
+  role: evaluator-gold-evidence

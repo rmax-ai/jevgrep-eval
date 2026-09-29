@@ -1,0 +1,7 @@
+cap_usd: "50"
+allocations:
+  stage_0_5: "2"
+  stage_1_retrieval: "3"
+  stage_2_pilot: "10"
+  stage_3_holdout: "30"
+  contingency: "5"

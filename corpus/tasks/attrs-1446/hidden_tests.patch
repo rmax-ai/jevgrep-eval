@@ -1,0 +1,21 @@
+diff --git a/tests/test_make.py b/tests/test_make.py
+index 2e350577c71f42ae1e692bff43ce900aad372664..8f4846a7885784d2b59b22d6fa3d4db81b5ec223 100644
+--- a/tests/test_make.py
++++ b/tests/test_make.py
+@@ -23,7 +23,7 @@ from hypothesis.strategies import booleans, integers, lists, sampled_from, text
+ import attr
+ 
+ from attr import _config
+-from attr._compat import PY_3_10_PLUS, PY_3_14_PLUS
++from attr._compat import PY_3_10_PLUS
+ from attr._make import (
+     Attribute,
+     Factory,
+@@ -1939,7 +1939,6 @@ class TestClassBuilder:
+ 
+         assert [C2] == C.__subclasses__()
+ 
+-    @pytest.mark.xfail(PY_3_14_PLUS, reason="Currently broken on nightly.")
+     def test_no_references_to_original_when_using_cached_property(self):
+         """
+         When subclassing a slotted class and using cached property, there are

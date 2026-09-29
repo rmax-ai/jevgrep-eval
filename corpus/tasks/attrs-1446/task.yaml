@@ -1,0 +1,44 @@
+task_id: attrs-1446
+repo_id: python-attrs__attrs
+base_sha: cbaef3f8f5ec3d6049b42c8c27f542c1571bb4c8
+gold_sha: 000c563473400aa086f6486a9c38ace0e77ea219
+fix_ref: https://github.com/python-attrs/attrs/pull/1446
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Slotted reference cycles
+  on 3.14. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- src/attr/_make.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/attrs-1446/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_make.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-attrs__attrs/uv
+expected_test_seconds: 30.0
+stratum: test-discovery
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/attrs-1446/gold.patch
+  sha256: 795d1c1ec1d9b70d7d53cb86b622270e7033a9d0b8d1be8dded190bce77ae0e6
+  role: evaluator-gold-patch
+- path: tasks/attrs-1446/hidden_tests.patch
+  sha256: 16aeb90aa847e2ac0eb1a9ae2fec7c9a01325213ead5559aa3153ca5ee808a6f
+  role: evaluator-hidden-tests
+- path: tasks/attrs-1446/admission.json
+  sha256: 5692f10d0bc5e61f45c9c45082afbf7e674d969e289b30a4489d8d6379ad50f3
+  role: admission-evidence
+- path: tasks/attrs-1446/sanitization.md
+  sha256: 69d9d1f0b100822227c4350e4be7c08379b951b94d182f66999cc0892e331498
+  role: sanitization-review
+- path: tasks/attrs-1446/gold-evidence.json
+  sha256: a26a892f8064f2b6b53f2112b46f8df16f0870415acbadb5c8572f297705edf5
+  role: evaluator-gold-evidence

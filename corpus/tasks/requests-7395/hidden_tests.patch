@@ -1,0 +1,13 @@
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 6d1bef66e051610e6286dbba8102ab63fee62508..abcb3bc346ddff2a98c2cdc1a85382ff0795ae05 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -586,7 +586,7 @@ class TestRequests:
+             ("http://doesnotexist.google.com", ConnectionError),
+             # Connecting to an invalid port should raise a ConnectionError
+             ("http://localhost:1", ConnectionError),
+-            # Inputing a URL that cannot be parsed should raise an InvalidURL error
++            # Inputting a URL that cannot be parsed should raise an InvalidURL error
+             ("http://fe80::5054:ff:fe5a:fc0", InvalidURL),
+         ),
+     )

@@ -1,0 +1,12 @@
+diff --git a/src/middleware/persist.ts b/src/middleware/persist.ts
+index e7c06820e310e8fb0569b9937d10032bb3c36bd6..abd9c042ef1ba69dd7f2bcd8b4036b2deb5df794 100644
+--- a/src/middleware/persist.ts
++++ b/src/middleware/persist.ts
+@@ -346,6 +346,7 @@ const persistImpl: PersistImpl = (config, baseOptions) => (set, get, api) => {
+       }
+     },
+     clearStorage: () => {
++      ++hydrationVersion
+       storage?.removeItem(options.name)
+     },
+     getOptions: () => options,

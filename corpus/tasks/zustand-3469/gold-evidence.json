@@ -1,0 +1,1 @@
+{"files":["src/middleware/devtools.ts"],"gold_patch_sha256":"79af7d7045892c6e13be3e192c036c51dfeb1ec77da17c9e9954c9351ef4505d","gold_sha":"4e9bcf0c82938cfe2463495a845806cd5ec3e59b","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"zustand-3469"}

@@ -1,0 +1,55 @@
+task_id: tqdm-1830
+repo_id: tqdm__tqdm
+base_sha: 8d6ff8de5a9066de77d0a9df3e80a022a3dcf146
+gold_sha: 9cf5a12b1f955468a17f0ba3c59092b23e4258ac
+fix_ref: https://github.com/tqdm/tqdm/pull/1830
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: ValueError in thread_map/process_map
+  with no-length iterables. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- tqdm/contrib/concurrent.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/tqdm-1830/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -o
+- addopts=
+- -q
+- tests/tests_utils.py
+setup_commands:
+- python -m pytest -q -m 'not slow'; staged cache injection via dep-cache/tqdm__tqdm/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/tqdm-1830/gold.patch
+  sha256: 513e033350d07121b696849b88746427946c5a0e2d97098a6d19c13bb342ca9a
+  role: evaluator-gold-patch
+- path: tasks/tqdm-1830/hidden_tests.patch
+  sha256: e567098679b230cbc051468c38e65b18c1caa7af9b995d6015cee18b73b356bd
+  role: evaluator-hidden-tests
+- path: tasks/tqdm-1830/admission.json
+  sha256: 8f5910153fd39054d378762b641386c6c1f98a889d7b7f699d087d7eef1adb02
+  role: admission-evidence
+- path: tasks/tqdm-1830/sanitization.md
+  sha256: 941a3a682abdb4c1194a16816f98b3377918a93d5d51ede092e526c207c583cc
+  role: sanitization-review
+- path: tasks/tqdm-1830/gold-evidence.json
+  sha256: 96b19c4031528a3af7d9f56052cdcef47c2a0cacc3c18f8a10cab1dc304a640d
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -o
+- addopts=
+- -q
+- tests/tests_concurrent.py

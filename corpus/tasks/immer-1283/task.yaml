@@ -1,0 +1,50 @@
+task_id: immer-1283
+repo_id: immerjs__immer
+base_sha: a3be9df762c1dbe9959a011ddbab0ce838cbc468
+gold_sha: d2c158f5bac7081a760bbaf501ea5c360b7856e1
+fix_ref: https://github.com/immerjs/immer/pull/1283
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Key inserted array indices
+  by name in the array-methods plugin. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/plugins/arrayMethods.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/immer-1283/hidden_tests.patch
+test_runner: vitest
+test_command:
+- yarn
+- vitest
+- run
+- __tests__/base.js
+setup_commands:
+- copy staged node_modules overlay; yarn cache dep-cache/immerjs__immer/yarn-cache
+expected_test_seconds: 60.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/immer-1283/gold.patch
+  sha256: a8038c2a6e5de34fbc33a71c3465cd0e22cc813193f75489f1b6591ad8556fa7
+  role: evaluator-gold-patch
+- path: tasks/immer-1283/hidden_tests.patch
+  sha256: dcba44a4443c37a56ffb97e1984f4372c68c95bc3d5f02bb3503898357972e4b
+  role: evaluator-hidden-tests
+- path: tasks/immer-1283/admission.json
+  sha256: 43e466207f849253769f72830a90f46ced046d816b1134196dc9c55de2de951c
+  role: admission-evidence
+- path: tasks/immer-1283/sanitization.md
+  sha256: 8d627cdb4d60dc1adddd00e6149c72a65e276b990e0e342152bcae2bc08c67ed
+  role: sanitization-review
+- path: tasks/immer-1283/gold-evidence.json
+  sha256: 4afe90815d3f409754452f06a134c5b93abd36d9e4ca35de4a323688a39206f6
+  role: evaluator-gold-evidence
+hidden_test_command:
+- yarn
+- vitest
+- run
+- __tests__/base.js

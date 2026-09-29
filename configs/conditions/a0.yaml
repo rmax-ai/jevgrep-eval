@@ -1,0 +1,6 @@
+id: a0
+label: native-search-only
+retrieval_tools: []
+forced_first: none
+oracle_hint: false
+notes: "Primary native-search baseline."

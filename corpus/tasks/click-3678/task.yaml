@@ -1,0 +1,52 @@
+task_id: click-3678
+repo_id: pallets__click
+base_sha: 8c1a0a7abbc1c36f70d1f65f3604acc46c5ce6ab
+gold_sha: b67832c2167e5b0ff6764a8c04a0a9087e697b5a
+fix_ref: https://github.com/pallets/click/pull/3678
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Parsing when a parameter
+  is named `help`. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- src/click/core.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/click-3678/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_context.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__click/uv
+expected_test_seconds: 30.0
+stratum: configuration-registration
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/click-3678/gold.patch
+  sha256: 01f0192760b85b754b0396a5085b4415092d318a99a50c74ae751f4b62ea789d
+  role: evaluator-gold-patch
+- path: tasks/click-3678/hidden_tests.patch
+  sha256: 0132b4a3ae0b52cae7c8a0024cde32440878be7fed75d5d09a14b6c74430724f
+  role: evaluator-hidden-tests
+- path: tasks/click-3678/admission.json
+  sha256: 720f84ae686102d875f4d46db67d413c50a8e0941632aa0f3fcc9572f9a36ac8
+  role: admission-evidence
+- path: tasks/click-3678/sanitization.md
+  sha256: 10de70fc14d6d2ad7e763492f967ef92c9e30ee751df3a282b50d3063f58de6b
+  role: sanitization-review
+- path: tasks/click-3678/gold-evidence.json
+  sha256: 1e6786ab246172399c47ceab5434573ff2d2d46dd2e110149e45708a046146b1
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_basic.py
+- tests/test_info_dict.py
+- tests/test_options.py

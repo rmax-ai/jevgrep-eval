@@ -1,0 +1,45 @@
+task_id: attrs-1513
+repo_id: python-attrs__attrs
+base_sha: ab7f8b2f4c0f747d5b1575247ce35e5adaad182e
+gold_sha: af9c510912ce604a94896cc35c27368d5baf6ae6
+fix_ref: https://github.com/python-attrs/attrs/pull/1513
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Validators.disabled() to
+  save/restore state on nesting. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/attr/validators.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/attrs-1513/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_validators.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-attrs__attrs/uv
+expected_test_seconds: 30.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/attrs-1513/gold.patch
+  sha256: 0165425fad66d27906f3af8c3fdfb2fdd6017555cc0451c7cd7d18991dbf4d03
+  role: evaluator-gold-patch
+- path: tasks/attrs-1513/hidden_tests.patch
+  sha256: 5593aa134417b7cec8e325e7dee22f506d90cd602dea19b4b86dcf032cb12703
+  role: evaluator-hidden-tests
+- path: tasks/attrs-1513/admission.json
+  sha256: 6776a72786db81634229330202286f9d917180fb7bc0c0bd0b188dcfbc3a7715
+  role: admission-evidence
+- path: tasks/attrs-1513/sanitization.md
+  sha256: 124986e23715881c667683ba97d2c1612e5aa18281f9d229840290f61308331f
+  role: sanitization-review
+- path: tasks/attrs-1513/gold-evidence.json
+  sha256: 8d61d1415e2d3fba7edf8f027c26ef4060bd38259e62092be61d2976bad52078
+  role: evaluator-gold-evidence

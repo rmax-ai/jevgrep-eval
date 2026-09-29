@@ -1,0 +1,358 @@
+diff --git a/testing/benchmark.py b/testing/benchmark.py
+index cc3be4ebfe3771eac17a316453f46cad55e1fb9f..81823eddc45d2e8dc57c0f201a8509fd19d25d15 100644
+--- a/testing/benchmark.py
++++ b/testing/benchmark.py
+@@ -2,6 +2,8 @@
+ Benchmarking and performance tests.
+ """
+ 
++import inspect
++import sys
+ from typing import Any
+ 
+ import pytest
+@@ -11,6 +13,66 @@ from pluggy import HookspecMarker
+ from pluggy import PluginManager
+ from pluggy._callers import _multicall
+ from pluggy._hooks import HookImpl
++from pluggy._hooks import varnames
++
++
++def _varnames_legacy(func: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
++    """Pre-structural-detection implementation using inspect.signature and
++    name-based heuristics for comparison."""
++    if inspect.isclass(func):
++        try:
++            func = func.__init__
++        except AttributeError:
++            return (), ()
++    elif not inspect.isroutine(func):
++        try:
++            func = getattr(func, "__call__", func)
++        except Exception:
++            return (), ()
++
++    try:
++        sig = inspect.signature(
++            func.__func__ if inspect.ismethod(func) else func  # type: ignore[arg-type]
++        )
++    except TypeError:
++        return (), ()
++
++    _valid_param_kinds = (
++        inspect.Parameter.POSITIONAL_ONLY,
++        inspect.Parameter.POSITIONAL_OR_KEYWORD,
++    )
++    _valid_params = {
++        name: param
++        for name, param in sig.parameters.items()
++        if param.kind in _valid_param_kinds
++    }
++    args = tuple(_valid_params)
++    defaults = (
++        tuple(
++            param.default
++            for param in _valid_params.values()
++            if param.default is not param.empty
++        )
++        or None
++    )
++
++    if defaults:
++        index = -len(defaults)
++        args, kwargs = args[:index], tuple(args[index:])
++    else:
++        kwargs = ()
++
++    _pypy = hasattr(sys, "pypy_version_info")
++    if not _pypy:
++        implicit_names: tuple[str, ...] = ("self",)
++    else:
++        implicit_names = ("self", "obj")
++    if args:
++        qualname: str = getattr(func, "__qualname__", "")
++        if inspect.ismethod(func) or ("." in qualname and args[0] in implicit_names):
++            args = args[1:]
++
++    return args, kwargs
+ 
+ 
+ hookspec = HookspecMarker("example")
+@@ -106,3 +168,30 @@ def test_call_hook(benchmark, plugins, wrappers, nesting) -> None:
+         pm.register(PluginWrap(i), name=f"wrap_plug_{i}")
+ 
+     benchmark(pm.hook.fun, hooks=pm.hook, nesting=nesting)
++
++
++def _plain_func(x: int, y: str, z: float = 1.0) -> None:
++    pass
++
++
++class _MethodHolder:
++    def method(self, x: int, y: str, z: float = 1.0) -> None:
++        pass
++
++
++_varnames_funcs = [
++    pytest.param(_plain_func, id="plain_function"),
++    pytest.param(_MethodHolder.method, id="unbound_method"),
++    pytest.param(_MethodHolder().method, id="bound_method"),
++    pytest.param(_MethodHolder, id="class"),
++]
++
++
++@pytest.mark.parametrize("func", _varnames_funcs)
++def test_varnames(benchmark, func: object) -> None:
++    benchmark(varnames, func)
++
++
++@pytest.mark.parametrize("func", _varnames_funcs)
++def test_varnames_legacy(benchmark, func: object) -> None:
++    benchmark(_varnames_legacy, func)
+diff --git a/testing/test_helpers.py b/testing/test_helpers.py
+index a08e3d7a4d4e622d22efc47b83d7fe65b8934eb0..3c58ecee8961cc8ca3cd1337904cf98cc9478b72 100644
+--- a/testing/test_helpers.py
++++ b/testing/test_helpers.py
+@@ -112,5 +112,163 @@ def test_varnames_decorator() -> None:
+     ex_inst = Example()
+ 
+     assert varnames(example) == (("a",), ("b",))
++    # Unbound: self is stripped because it's in _IMPLICIT_NAMES and qualname is dotted.
+     assert varnames(Example.example_method) == (("x",), ("y",))
++    # Bound: self is already consumed.
+     assert varnames(ex_inst.example_method) == (("x",), ("y",))
++
++
++def test_varnames_bound_method_from_module_function() -> None:
++    """A module-level function assigned to a class attribute becomes a bound
++    method when accessed on an instance, but its __qualname__ has no dot.
++    varnames must still strip the first parameter."""
++
++    def standalone(self, x) -> None:
++        pass  # pragma: no cover
++
++    class MyClass:
++        method = standalone
++
++    assert varnames(MyClass().method) == (("x",), ())
++
++
++def test_varnames_unconventional_first_param_name() -> None:
++    """Bound methods strip unconditionally, but unbound methods with
++    non-standard first parameter names preserve all arguments."""
++
++    class MyClass:
++        def method(this, x) -> None:
++            pass  # pragma: no cover
++
++    # Bound: stripped regardless of name.
++    assert varnames(MyClass().method) == (("x",), ())
++    # Unbound with dotted qualname but non-implicit name: NOT stripped.
++    assert varnames(MyClass.method) == (("this", "x"), ())
++
++
++def test_varnames_classmethod() -> None:
++    class MyClass:
++        @classmethod
++        def cm(cls, x, y=1) -> None:
++            pass  # pragma: no cover
++
++    # Classmethods are always bound (even from the class).
++    assert varnames(MyClass.cm) == (("x",), ("y",))
++    assert varnames(MyClass().cm) == (("x",), ("y",))
++
++
++def test_varnames_staticmethod() -> None:
++    class MyClass:
++        @staticmethod
++        def sm(x, y=1) -> None:
++            pass  # pragma: no cover
++
++    # Staticmethods have no implicit first arg.
++    assert varnames(MyClass.sm) == (("x",), ("y",))
++    assert varnames(MyClass().sm) == (("x",), ("y",))
++
++
++def test_varnames_hookspec_without_self() -> None:
++    """Hookspec-style class methods without self/cls preserve all parameters.
++
++    This is the convention used by projects like pytest-timeout where hookspec
++    classes define methods without ``self`` since they serve as pure signatures.
++    By default varnames does not warn; the warning is emitted when
++    ``legacy_noself=True`` is passed (as HookSpec.__init__ does).
++    """
++
++    class MySpecs:
++        def my_hook(item, extra) -> None:
++            pass  # pragma: no cover
++
++    # Accessed as unbound: first arg is not an implicit name, keep it.
++    assert varnames(MySpecs.my_hook) == (("item", "extra"), ())
++    # Accessed as bound (via instance): first arg is stripped.
++    assert varnames(MySpecs().my_hook) == (("extra",), ())
++
++
++def test_varnames_legacy_noself_warns() -> None:
++    """With ``legacy_noself=True``, varnames warns when it encounters a
++    class method whose first parameter is not an implicit name."""
++    import warnings
++
++    class MySpecs:
++        def my_hook(item, extra) -> None:
++            pass  # pragma: no cover
++
++    with warnings.catch_warnings(record=True) as w:
++        warnings.simplefilter("always")
++        result = varnames(MySpecs.my_hook, legacy_noself=True)
++    assert result == (("item", "extra"), ())
++    assert len(w) == 1
++    assert issubclass(w[0].category, DeprecationWarning)
++    assert "'item' is not 'self'" in str(w[0].message)
++
++
++def test_varnames_legacy_noself_no_warn_with_self() -> None:
++    """With ``legacy_noself=True``, no warning when the method has ``self``."""
++    import warnings
++
++    class MySpecs:
++        def my_hook(self, item, extra) -> None:
++            pass  # pragma: no cover
++
++    with warnings.catch_warnings(record=True) as w:
++        warnings.simplefilter("always")
++        result = varnames(MySpecs.my_hook, legacy_noself=True)
++    assert result == (("item", "extra"), ())
++    assert len(w) == 0
++
++
++def test_varnames_no_legacy_noself_no_warn() -> None:
++    """Without ``legacy_noself``, no warning even for class methods without self."""
++    import warnings
++
++    class MySpecs:
++        def my_hook(item, extra) -> None:
++            pass  # pragma: no cover
++
++    with warnings.catch_warnings(record=True) as w:
++        warnings.simplefilter("always")
++        result = varnames(MySpecs.my_hook)
++    assert result == (("item", "extra"), ())
++    assert len(w) == 0
++
++
++def test_varnames_legacy_noself_suppressed_for_timeout_hooks() -> None:
++    """The deprecation warning is suppressed for known upstream-fixed packages."""
++    import warnings
++
++    class TimeoutHooks:
++        def pytest_timeout_set_timer(item, settings) -> None:
++            pass  # pragma: no cover
++
++        def pytest_timeout_cancel_timer(item) -> None:
++            pass  # pragma: no cover
++
++    with warnings.catch_warnings(record=True) as w:
++        warnings.simplefilter("always")
++        result_set = varnames(TimeoutHooks.pytest_timeout_set_timer, legacy_noself=True)
++        result_cancel = varnames(
++            TimeoutHooks.pytest_timeout_cancel_timer, legacy_noself=True
++        )
++    assert result_set == (("item", "settings"), ())
++    assert result_cancel == (("item",), ())
++    assert len(w) == 0
++
++
++def test_varnames_unresolvable_annotation() -> None:
++    """Test that varnames works with annotations that cannot be resolved.
++
++    In Python 3.14+, inspect.signature() tries to resolve string annotations
++    by default, which can fail if the annotation refers to a type that isn't
++    importable. Using __code__ directly avoids this issue.
++    """
++
++    def func_with_bad_annotation(
++        x: "NonExistentType",  # type: ignore[name-defined]  # noqa: F821
++        y,
++    ) -> None:
++        pass
++
++    assert varnames(func_with_bad_annotation) == (("x", "y"), ())
+diff --git a/testing/test_hookcaller.py b/testing/test_hookcaller.py
+index f98558149d8acdc0151191b85c143de993d22845..0c9f91bd5059e7bb06df5efead6b3350a2ba995f 100644
+--- a/testing/test_hookcaller.py
++++ b/testing/test_hookcaller.py
+@@ -304,15 +304,15 @@ def test_adding_wrappers_complex(hc: HookCaller, addmeth: AddMeth) -> None:
+ def test_hookspec(pm: PluginManager) -> None:
+     class HookSpec:
+         @hookspec()
+-        def he_myhook1(arg1) -> None:
++        def he_myhook1(self, arg1) -> None:
+             pass
+ 
+         @hookspec(firstresult=True)
+-        def he_myhook2(arg1) -> None:
++        def he_myhook2(self, arg1) -> None:
+             pass
+ 
+         @hookspec(firstresult=False)
+-        def he_myhook3(arg1) -> None:
++        def he_myhook3(self, arg1) -> None:
+             pass
+ 
+     pm.add_hookspecs(HookSpec)
+diff --git a/testing/test_warnings.py b/testing/test_warnings.py
+index 4f5454be24f55be4ba9c19fecb8c7e8bc5c5829f..b84cdca6494b7928fb3bc9df1612da9248c171c8 100644
+--- a/testing/test_warnings.py
++++ b/testing/test_warnings.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import warnings
+ 
+ import pytest
+ 
+@@ -47,3 +48,45 @@ def test_teardown_raised_warning(pm: PluginManager) -> None:
+             pm.hook.my_hook()
+     assert len(wc.list) == 1
+     assert Path(wc.list[0].filename).name == "test_warnings.py"
++
++
++def test_hookspec_missing_self_warns(pm: PluginManager) -> None:
++    """A hookspec defined as a method without ``self`` emits a DeprecationWarning."""
++
++    class Api:
++        @hookspec
++        def my_hook(item, extra):
++            pass
++
++    with pytest.warns(
++        DeprecationWarning,
++        match=r"is a method but its first parameter 'item' is not 'self'",
++    ):
++        pm.add_hookspecs(Api)
++
++
++def test_hookspec_with_self_no_warning(pm: PluginManager) -> None:
++    """A hookspec with ``self`` does not emit a DeprecationWarning."""
++
++    class Api:
++        @hookspec
++        def my_hook(self, item, extra):
++            pass
++
++    with warnings.catch_warnings():
++        warnings.simplefilter("error")
++        pm.add_hookspecs(Api)
++
++
++def test_hookspec_staticmethod_no_warning(pm: PluginManager) -> None:
++    """A hookspec using @staticmethod does not emit a DeprecationWarning."""
++
++    class Api:
++        @staticmethod
++        @hookspec
++        def my_hook(item, extra) -> None:
++            pass
++
++    with warnings.catch_warnings():
++        warnings.simplefilter("error")
++        pm.add_hookspecs(Api)

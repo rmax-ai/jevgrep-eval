@@ -1,0 +1,27 @@
+diff --git a/src/types/types-external.ts b/src/types/types-external.ts
+index 8c8fedd9f6e042acace0e4b3904e417dacac7f82..d42ab8f2409692b531690b90b3735f423e356eaf 100644
+--- a/src/types/types-external.ts
++++ b/src/types/types-external.ts
+@@ -234,6 +234,22 @@ export interface IProduce {
+ export interface IProduceWithPatches {
+ 	// Types copied from IProduce, wrapped with PatchesTuple
+ 	<Recipe extends AnyFunc>(recipe: Recipe): InferCurriedFromRecipe<Recipe, true>
++
++	/** Curried producer that infers curried from the State generic, which is explicitly passed in.  */
++	<State, Args extends any[]>(
++		recipe: (
++			state: Draft<State>,
++			...args: Args
++		) => ValidRecipeReturnType<State>,
++		initialState: State
++	): (state?: State, ...args: Args) => PatchesTuple<State>
++	<State>(
++		recipe: (state: Draft<State>) => ValidRecipeReturnType<State>
++	): (state: State) => PatchesTuple<State>
++	<State, Args extends any[]>(
++		recipe: (state: Draft<State>, ...args: Args) => ValidRecipeReturnType<State>
++	): (state: State, ...args: Args) => PatchesTuple<State>
++
+ 	<State, Recipe extends Function>(
+ 		recipe: Recipe,
+ 		initialState: State

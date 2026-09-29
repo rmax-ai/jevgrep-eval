@@ -1,0 +1,48 @@
+task_id: zod-6572
+repo_id: colinhacks__zod
+base_sha: 22bed613281143efa3815fe26ab666c6c56586af
+gold_sha: 36f17960d1defca5d0896d9424f4e1059fbbf081
+fix_ref: https://github.com/colinhacks/zod/pull/6572
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Stop the memoizer from
+  pinning a finished parse. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- packages/zod/src/v4/core/memoizer.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zod-6572/hidden_tests.patch
+test_runner: vitest
+test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/cyclic-data.test.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/colinhacks__zod/pnpm-store
+expected_test_seconds: 60.0
+stratum: test-discovery
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/zod-6572/gold.patch
+  sha256: 4ef632bb3791d71c1b3dc30597c507391338958e3eeed25d16da2d359fb11e00
+  role: evaluator-gold-patch
+- path: tasks/zod-6572/hidden_tests.patch
+  sha256: 97eeed6cbb21a08af3b77f16910580baa4a8b4b646613723a6b9c4a074f8a2ed
+  role: evaluator-hidden-tests
+- path: tasks/zod-6572/admission.json
+  sha256: deecccdc38b70fc06dce4a03f4852535f5d5087da8fce0e6852348f711f79616
+  role: admission-evidence
+- path: tasks/zod-6572/sanitization.md
+  sha256: 21ae3fcbfb770adfc41d7732a171d45ce486cd9fea50e19888bfcf32f1fff5fa
+  role: sanitization-review
+- path: tasks/zod-6572/gold-evidence.json
+  sha256: 8799e24278370e093008d6761d150aa833576ba561af4208ad02b4affbf5118c
+  role: evaluator-gold-evidence
+hidden_test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/cyclic-data.test.ts

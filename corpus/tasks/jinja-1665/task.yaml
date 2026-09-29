@@ -1,0 +1,51 @@
+task_id: jinja-1665
+repo_id: pallets__jinja
+base_sha: fbc3a696c729d177340cc089531de7e2e5b6f065
+gold_sha: c8fdce1e0333f1122b244b03a48535fdd7b03d91
+fix_ref: https://github.com/pallets/jinja/pull/1665
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Bug involving calling set
+  on a template parameter within all branches of an if block. Preserve the established
+  public API and behavior outside that case.'
+changed_files: &id001
+- src/jinja2/idtracking.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/jinja-1665/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_regression.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__jinja/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/jinja-1665/gold.patch
+  sha256: b10a207ba45589f51f52f79292999e0fc951e3bbb5dc0c8790b47a5c57be8e5f
+  role: evaluator-gold-patch
+- path: tasks/jinja-1665/hidden_tests.patch
+  sha256: aff4da7739557476cebea4f4b7f8bde3d20525775b1e9a1f2337d4059e5759c2
+  role: evaluator-hidden-tests
+- path: tasks/jinja-1665/admission.json
+  sha256: fedb642e431fbe5644a9d4be103057a6c138106106d53636459698081a715160
+  role: admission-evidence
+- path: tasks/jinja-1665/sanitization.md
+  sha256: f2e856b428c1e80a8b351671f815e35e67944815c6210e1d5bb6c3680facc60c
+  role: sanitization-review
+- path: tasks/jinja-1665/gold-evidence.json
+  sha256: f85c8d5b2f9aee15af75d6bfd6c6e8d7ddb0f51b0b5f3a6da4f139ad06835c23
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_regression.py

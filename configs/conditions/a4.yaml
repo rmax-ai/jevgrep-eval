@@ -1,0 +1,6 @@
+id: a4
+label: bm25-forced-first
+retrieval_tools: [bm25]
+forced_first: bm25
+oracle_hint: false
+notes: "Diagnostic prompt-level forced-first arm; noncompliance is retained."

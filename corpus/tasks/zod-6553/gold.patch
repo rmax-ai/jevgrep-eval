@@ -1,0 +1,32 @@
+diff --git a/packages/zod/src/v4/core/checks.ts b/packages/zod/src/v4/core/checks.ts
+index c98cd9c0f222c991c38794772813763f852dd61e..ed66f38695c0e4ea49146a80261f562ac4bd9d20 100644
+--- a/packages/zod/src/v4/core/checks.ts
++++ b/packages/zod/src/v4/core/checks.ts
+@@ -288,8 +288,11 @@ export const $ZodCheckNumberFormat: core.$constructor<$ZodCheckNumberFormat> = /
+     inst._zod.onattach.push((inst) => {
+       const bag = inst._zod.bag;
+       bag.format = def.format;
+-      bag.minimum = minimum;
+-      bag.maximum = maximum;
++      // narrow against bounds an earlier .min()/.max() already stored, rather than overwriting them with this format's (wider) range
++      const curMin = (bag.minimum ?? Number.NEGATIVE_INFINITY) as number;
++      if (minimum > curMin) bag.minimum = minimum;
++      const curMax = (bag.maximum ?? Number.POSITIVE_INFINITY) as number;
++      if (maximum < curMax) bag.maximum = maximum;
+       if (isInt) bag.pattern = regexes.integer;
+     });
+ 
+@@ -416,8 +419,11 @@ export const $ZodCheckBigIntFormat: core.$constructor<$ZodCheckBigIntFormat> = /
+     inst._zod.onattach.push((inst) => {
+       const bag = inst._zod.bag;
+       bag.format = def.format;
+-      bag.minimum = minimum;
+-      bag.maximum = maximum;
++      // narrow against bounds an earlier .min()/.max() already stored, rather than overwriting them with this format's (wider) range
++      const curMin = (bag.minimum ?? Number.NEGATIVE_INFINITY) as bigint | number;
++      if (minimum > curMin) bag.minimum = minimum;
++      const curMax = (bag.maximum ?? Number.POSITIVE_INFINITY) as bigint | number;
++      if (maximum < curMax) bag.maximum = maximum;
+     });
+ 
+     inst._zod.check = (payload) => {

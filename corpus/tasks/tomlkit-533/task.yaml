@@ -1,0 +1,44 @@
+task_id: tomlkit-533
+repo_id: python-poetry__tomlkit
+base_sha: d3c76f0bbe90af4b12a3b83bd8e59bc9061dfe85
+gold_sha: 43668ddebc3f082bf385d328aceed18d26976897
+fix_ref: https://github.com/python-poetry/tomlkit/pull/533
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Keep newline after dotted
+  inline table. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- tomlkit/container.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/tomlkit-533/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_toml_document.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-poetry__tomlkit/uv
+expected_test_seconds: 30.0
+stratum: configuration-registration
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/tomlkit-533/gold.patch
+  sha256: 33c53647f1a4735def33f1b9beacf6d9629f2ad44175c9ad0e453b7758537b5e
+  role: evaluator-gold-patch
+- path: tasks/tomlkit-533/hidden_tests.patch
+  sha256: 8ec2990f3d21993874bcea2ab7063d0448b2446457b7c4ca448b0f1890ebc241
+  role: evaluator-hidden-tests
+- path: tasks/tomlkit-533/admission.json
+  sha256: 5949d592dfbdf727a2fb630fb801e7ec333065354d0e3f65d82cad7678281218
+  role: admission-evidence
+- path: tasks/tomlkit-533/sanitization.md
+  sha256: 5dba840505e3958bcc05c2612b1922d6ae3adba383800b15264cb195c00ff07f
+  role: sanitization-review
+- path: tasks/tomlkit-533/gold-evidence.json
+  sha256: fdb3e363731243c7305bf90723e7fac7396ef17438a2a0898d3a0381b0cff602
+  role: evaluator-gold-evidence

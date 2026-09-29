@@ -1,0 +1,54 @@
+task_id: pluggy-632
+repo_id: pytest-dev__pluggy
+base_sha: 59e66fdb231bf47ce5e0b8ed75b788820b135c34
+gold_sha: 5d7bd2cc083571466f44f9683136b7d8f62b88bf
+fix_ref: https://github.com/pytest-dev/pluggy/pull/632
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: [NO-SQUASH-MERGE] fix varnames
+  on py3.14 deferred annotations. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/pluggy/_hooks.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/pluggy-632/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- testing/test_helpers.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pytest-dev__pluggy/uv
+expected_test_seconds: 30.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: dev
+manifest:
+- path: tasks/pluggy-632/gold.patch
+  sha256: eeff15aa859e862cc98f2baba6b9d939d0afaecd5c7795b0346ed948f3ac6ff2
+  role: evaluator-gold-patch
+- path: tasks/pluggy-632/hidden_tests.patch
+  sha256: 28f5e011008d6e29ceedaadf50e7980e0390b2c24d21331004699f5f2034d22b
+  role: evaluator-hidden-tests
+- path: tasks/pluggy-632/admission.json
+  sha256: 4650129f07cf9e7d4858e55f10aec414cd5075ab65173da07dea5863831aad53
+  role: admission-evidence
+- path: tasks/pluggy-632/sanitization.md
+  sha256: d24b8c5b27bdb114fcc26409147a27b99c4ed2e54ef1560c67efeb7373b7a837
+  role: sanitization-review
+- path: tasks/pluggy-632/gold-evidence.json
+  sha256: 8fe67634069042272e03ada2046ed8be2b48db21ffd292f930fc8f397a874a2b
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- testing/benchmark.py
+- testing/test_helpers.py
+- testing/test_hookcaller.py
+- testing/test_warnings.py

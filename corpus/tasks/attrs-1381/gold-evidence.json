@@ -1,0 +1,1 @@
+{"files":["tox.ini"],"gold_patch_sha256":"7f909414f1755e0859a2ed842d09bfcab5e67b9fc1591ffa7b4a5ae3b741598c","gold_sha":"2a76643e36aa7e07d13f9438857a7cff48b4a1d6","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"attrs-1381"}

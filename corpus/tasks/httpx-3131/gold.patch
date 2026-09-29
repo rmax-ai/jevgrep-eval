@@ -1,0 +1,60 @@
+diff --git a/httpx/_compat.py b/httpx/_compat.py
+index 493e6210873f325422e0b2087827bd8c95e70e56..27ccc6827333cbf91584a4317e0b0c21c31a73d3 100644
+--- a/httpx/_compat.py
++++ b/httpx/_compat.py
+@@ -2,6 +2,7 @@
+ The _compat module is used for code which requires branching between different
+ Python environments. It is excluded from the code coverage checks.
+ """
++
+ import ssl
+ import sys
+ 
+diff --git a/httpx/_decoders.py b/httpx/_decoders.py
+index 31c72c7f7a3c75cc356709c5faa532df5361e3e0..f9d3adbb5d5c3caa4eb88b4f1c3711fa84cfe40d 100644
+--- a/httpx/_decoders.py
++++ b/httpx/_decoders.py
+@@ -3,6 +3,7 @@ Handlers for Content-Encoding.
+ 
+ See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
+ """
++
+ from __future__ import annotations
+ 
+ import codecs
+diff --git a/httpx/_exceptions.py b/httpx/_exceptions.py
+index 18dfa2f2b72b2d8ea8dae7a79247e0db133d2b30..77f45a6d3986d15626fc8a5fd459d6a3e0fbe466 100644
+--- a/httpx/_exceptions.py
++++ b/httpx/_exceptions.py
+@@ -30,6 +30,7 @@ Our exception hierarchy:
+   x ResponseNotRead
+   x RequestNotRead
+ """
++
+ from __future__ import annotations
+ 
+ import contextlib
+diff --git a/httpx/_transports/default.py b/httpx/_transports/default.py
+index e82104e9d62c55309a7cd0d3346ff923a39189d9..bcc8bf422b6b993fe967df654dff5ee28161df41 100644
+--- a/httpx/_transports/default.py
++++ b/httpx/_transports/default.py
+@@ -23,6 +23,7 @@ client = httpx.Client(transport=transport)
+ transport = httpx.HTTPTransport(uds="socket.uds")
+ client = httpx.Client(transport=transport)
+ """
++
+ from __future__ import annotations
+ 
+ import contextlib
+diff --git a/httpx/_urlparse.py b/httpx/_urlparse.py
+index 6a4b55b38c0780d6ab9e28b779076c91e880d598..232269ee4dbffb94b54bdc59b4a0dee969f9f96a 100644
+--- a/httpx/_urlparse.py
++++ b/httpx/_urlparse.py
+@@ -15,6 +15,7 @@ Previously we relied on the excellent `rfc3986` package to handle URL parsing an
+ validation, but this module provides a simpler alternative, with less indirection
+ required.
+ """
++
+ from __future__ import annotations
+ 
+ import ipaddress

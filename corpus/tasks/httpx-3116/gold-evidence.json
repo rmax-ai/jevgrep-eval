@@ -1,0 +1,1 @@
+{"files":["httpx/_client.py"],"gold_patch_sha256":"0eb73ba8777fb787d8dacc8c88bbac8ff3205c6e6a0d3d5a9ada2245e3e2cb9c","gold_sha":"6d852d319acd5d97caf14037dff15ede04b37542","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"httpx-3116"}

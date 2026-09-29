@@ -1,0 +1,19 @@
+currency: USD
+cap_usd: "50"
+entries:
+  - component: jev
+    effective_date: "2026-09-29"
+    source: "Stage 0.5 provider receipt; pending live verification"
+    retrieved_at: "2026-09-29T00:00:00Z"
+    model: ""
+    service_tier: ""
+    notes: "Placeholder provenance only; no live cost claim is made in W1a."
+    input_rate_usd_per_million: "0"
+  - component: codex
+    effective_date: "2026-09-29"
+    source: "Subscription quota; modeled comparison only"
+    retrieved_at: "2026-09-29T00:00:00Z"
+    model: "codex-luna"
+    service_tier: "quota"
+    notes: "Does not consume the metered cash cap."
+    input_rate_usd_per_million: "0"

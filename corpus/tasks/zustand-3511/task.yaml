@@ -1,0 +1,46 @@
+task_id: zustand-3511
+repo_id: pmndrs__zustand
+base_sha: 8476d2ca288d787c1ffdd53615f44c85e98f87be
+gold_sha: ad77bd3bb6f7bbd12fea8b458ed5c0673df0793a
+fix_ref: https://github.com/pmndrs/zustand/pull/3511
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Improve type inference
+  for Devtools initializer. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- src/middleware/devtools.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zustand-3511/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- tests/middlewareTypes.test.tsx
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/pmndrs__zustand/pnpm-store
+expected_test_seconds: 60.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/zustand-3511/gold.patch
+  sha256: be338b608c462e1d2d39897e30914bd3c0b07256b096ff5909959b5ba5aa42a1
+  role: evaluator-gold-patch
+- path: tasks/zustand-3511/hidden_tests.patch
+  sha256: 6a1d90df2b7e3ebb833f8dcc95990831406387b5ea49d9e3320b20781b5402a1
+  role: evaluator-hidden-tests
+- path: tasks/zustand-3511/admission.json
+  sha256: 1dcd7e02bb63739cc992572ccd7a2386d74fd93c954797fa05e718053e8384a6
+  role: admission-evidence
+- path: tasks/zustand-3511/sanitization.md
+  sha256: a2c0af4e99c8e199d0ae786b40f44737ccb9858349231837bdad129a2417add4
+  role: sanitization-review
+- path: tasks/zustand-3511/gold-evidence.json
+  sha256: ef6d0713655555dab53af519d2fee80b5a1cacf9bc5c79b90f812082f46a4184
+  role: evaluator-gold-evidence

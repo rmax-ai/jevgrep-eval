@@ -1,0 +1,51 @@
+task_id: jinja-2029
+repo_id: pallets__jinja
+base_sha: ba8847a466d0f3ad622502f86e819737a4b9fdc7
+gold_sha: 1dc04bccf9384cced4262d7ca7157638b0ebd970
+fix_ref: https://github.com/pallets/jinja/pull/2029
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Pickle/copy support for
+  the `missing` singleton. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- src/jinja2/utils.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/jinja-2029/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_utils.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__jinja/uv
+expected_test_seconds: 30.0
+stratum: test-discovery
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/jinja-2029/gold.patch
+  sha256: 85dd4f276a0eeb8d93863780ba59045da471e5dfe5c136a0043709dc4ec0a922
+  role: evaluator-gold-patch
+- path: tasks/jinja-2029/hidden_tests.patch
+  sha256: 34fb9a18a99fa2ede59868b5a70ec5f66250f6788ee6347a64f54868c5b72f9c
+  role: evaluator-hidden-tests
+- path: tasks/jinja-2029/admission.json
+  sha256: 896e4326d2b6a686d101de22d28bdff3fbc8f059e2692834971cc8c48287d41f
+  role: admission-evidence
+- path: tasks/jinja-2029/sanitization.md
+  sha256: b8aa5a700a872d63540746c534b1a9d36d197adc479d9c742671450589e91d61
+  role: sanitization-review
+- path: tasks/jinja-2029/gold-evidence.json
+  sha256: 1d8812d98453787f3a0f16b08dd264ef7a3483cba2d70f484e50cdb9463c3494
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_utils.py

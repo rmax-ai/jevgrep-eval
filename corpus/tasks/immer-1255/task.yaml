@@ -1,0 +1,51 @@
+task_id: immer-1255
+repo_id: immerjs__immer
+base_sha: cfec5e51660aabd5f9026d3de1a0793630ef20c0
+gold_sha: a73672ab76b5d9fd94f278a23c6c1931a03147e5
+fix_ref: https://github.com/immerjs/immer/pull/1255
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Draft relocated base refs
+  after reverse/sort in array-methods plugin. Preserve the established public API
+  and behavior outside that case.'
+changed_files: &id001
+- src/core/proxy.ts
+- src/plugins/arrayMethods.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/immer-1255/hidden_tests.patch
+test_runner: vitest
+test_command:
+- yarn
+- vitest
+- run
+- __tests__/base.js
+setup_commands:
+- copy staged node_modules overlay; yarn cache dep-cache/immerjs__immer/yarn-cache
+expected_test_seconds: 60.0
+stratum: configuration-registration
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/immer-1255/gold.patch
+  sha256: ec9ddf75b92bdb125a04c762728224465655810443fdddfcc8ad85691fb2e59a
+  role: evaluator-gold-patch
+- path: tasks/immer-1255/hidden_tests.patch
+  sha256: b8078772099932680856c973b1969618790f08ce219cadbb7d6edec73c1ddbe5
+  role: evaluator-hidden-tests
+- path: tasks/immer-1255/admission.json
+  sha256: 57ba60c7480b23d7b32255dfee034257766ae744195def7fb53305de7f1e7445
+  role: admission-evidence
+- path: tasks/immer-1255/sanitization.md
+  sha256: 9de81dc66c46bb8deedd86b5959907a922d4492b4029b30922bddbc556c863a3
+  role: sanitization-review
+- path: tasks/immer-1255/gold-evidence.json
+  sha256: 96ca3070b38aa7c8fa7657ae84b1aee71c74a94bbcac1a703bef7e4525e9444a
+  role: evaluator-gold-evidence
+hidden_test_command:
+- yarn
+- vitest
+- run
+- __tests__/base.js

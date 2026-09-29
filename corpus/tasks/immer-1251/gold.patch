@@ -1,0 +1,14 @@
+diff --git a/src/plugins/patches.ts b/src/plugins/patches.ts
+index ca6ded45a2808d897700e7a9e2d24c79523ee148..08c7d0f62c984bf611319e4f61bc0930620807f6 100644
+--- a/src/plugins/patches.ts
++++ b/src/plugins/patches.ts
+@@ -345,7 +345,8 @@ export function enablePatches() {
+ 					die(errorOffset + 3)
+ 				if (isFunction(base) && p === PROTOTYPE) die(errorOffset + 3)
+ 				base = get(base, p)
+-				if (!isObjectish(base)) die(errorOffset + 2, path.join("/"))
++				if (base === null || !isObjectish(base))
++					die(errorOffset + 2, path.join("/"))
+ 			}
+ 
+ 			const type = getArchtype(base)

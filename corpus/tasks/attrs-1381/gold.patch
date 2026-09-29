@@ -1,0 +1,13 @@
+diff --git a/tox.ini b/tox.ini
+index 1f1de556ed697f77b1d4d90920f08b10b55e4090..bc199713a9da70cc2e2d55300458ce9bf3e5919e 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -113,7 +113,7 @@ commands =
+ 
+ [testenv:pyright]
+ extras = tests
+-deps = pyright<1.1.380
++deps = pyright>=1.1.380
+ commands = pytest tests/test_pyright.py -vv
+ 
+ 
