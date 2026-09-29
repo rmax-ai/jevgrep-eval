@@ -109,7 +109,19 @@ class CodexHarness:
             command = [command]
         if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
             raise CodexHarnessError("harness command must be an argv list")
-        argv = [*command, "--model", model, "--reasoning-effort", effort, prompt]
+        sandbox = self.config.get("sandbox", "workspace-write")
+        argv = [
+            *command,
+            "--json",
+            "--skip-git-repo-check",
+            "-s",
+            sandbox,
+            "--model",
+            model,
+            "-c",
+            f"model_reasoning_effort={effort}",
+            prompt,
+        ]
         allowlist = self.env_allowlist or tuple(self.config.get("env_allowlist", ()))
         source_env = _effective_env(env, allowlist)
         sanitized = _sanitize_env(source_env)

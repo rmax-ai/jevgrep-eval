@@ -34,7 +34,8 @@ from .models import (
     TerminalStatus,
     WorkspaceManifest,
 )
-from .traces import derive_metrics, parse_jsonl
+from .traces import derive_metrics
+from .traces_codex import parse_trace
 from .util import canonical_json, digest, digest_bytes, normalize_path, now
 
 
@@ -527,9 +528,9 @@ class Runner:
                 jsonl_path=stage_log,
             )
         if completed is None:
-            trace_parse = parse_jsonl(())
+            trace_parse = parse_trace(())
         else:
-            trace_parse = parse_jsonl(completed.stdout.splitlines(), str(workspace))
+            trace_parse = parse_trace(completed.stdout.splitlines(), str(workspace))
         events = list(trace_parse.events)
         flags: list[str] = []
         simulated = (

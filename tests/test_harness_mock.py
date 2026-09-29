@@ -14,5 +14,16 @@ def test_codex_invocation_argv():
     invocation = CodexHarness(config={"command": ["fake-codex"]}).assemble_invocation(
         "prompt", model="m", effort="low", env={"PATH": "/bin"}
     )
-    assert invocation.argv[:3] == ("fake-codex", "--model", "m")
+    assert invocation.argv == (
+        "fake-codex",
+        "--json",
+        "--skip-git-repo-check",
+        "-s",
+        "workspace-write",
+        "--model",
+        "m",
+        "-c",
+        "model_reasoning_effort=low",
+        "prompt",
+    )
     assert invocation.invocation_digest

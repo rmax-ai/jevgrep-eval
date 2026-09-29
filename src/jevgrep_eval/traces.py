@@ -8,7 +8,7 @@ import re
 import shlex
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from .models import EventKind, ToolEvent, ToolResult
@@ -50,7 +50,23 @@ def _executable(command: str) -> str:
     return tokens[0].rsplit("/", 1)[-1] if tokens else ""
 
 
+def unwrap_shell_call(command: str) -> str:
+    """Return the script from a simple bash/sh/zsh ``-c`` invocation."""
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return command
+    if (
+        len(tokens) >= 3
+        and tokens[0].rsplit("/", 1)[-1] in {"bash", "sh", "zsh"}
+        and tokens[1] in {"-c", "-lc"}
+    ):
+        return tokens[2]
+    return command
+
+
 def classify_command(command: str) -> EventKind:
+    command = unwrap_shell_call(command)
     executable = _executable(command)
     if executable in _READ:
         return EventKind.READ
@@ -62,8 +78,20 @@ def classify_command(command: str) -> EventKind:
         return EventKind.SEARCH_BM25
     if executable in _TEST:
         return EventKind.TEST
-    if executable in {"cp", "mv", "mkdir", "touch", "rm", "python", "python3"} and any(
-        word in command for word in ("write", "open(", "replace(", " -i ", ">>")
+    if executable in {
+        "cp",
+        "mv",
+        "mkdir",
+        "touch",
+        "rm",
+        "python",
+        "python3",
+        "printf",
+        "tee",
+        "dd",
+        "install",
+    } and any(
+        word in command for word in ("write", "open(", "replace(", " -i ", ">>", " > ", " <<")
     ):
         return EventKind.EDIT
     return EventKind.OTHER_SHELL
@@ -145,6 +173,7 @@ class TraceParse:
     missing_dimensions: tuple[str, ...] = ()
     errors: tuple[str, ...] = ()
     token_count_records: tuple[dict[str, Any], ...] = ()
+    provider_meta: dict[str, Any] = field(default_factory=dict)
 
     def __iter__(self):
         # Compatibility with the original three-value parser.
