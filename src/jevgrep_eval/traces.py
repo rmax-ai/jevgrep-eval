@@ -67,15 +67,18 @@ def unwrap_shell_call(command: str) -> str:
 
 def classify_command(command: str) -> EventKind:
     command = unwrap_shell_call(command)
-    executable = _executable(command)
+    executables = [_executable(segment) for segment in _commands(command)]
+    # Retrieval tools take precedence wherever they appear in a compound command:
+    # `command -v jg || true; jg 'query' | head` must read as a Jevgrep search.
+    if "jg" in executables or "jevgrep" in executables:
+        return EventKind.SEARCH_JG
+    if "bm25" in executables or "jevgrep-bm25" in executables:
+        return EventKind.SEARCH_BM25
+    executable = executables[0] if executables else ""
     if executable in _READ:
         return EventKind.READ
     if executable in {"rg", "grep", "find", "ls", "tree"}:
         return EventKind.SEARCH_NATIVE
-    if executable in {"jg", "jevgrep"}:
-        return EventKind.SEARCH_JG
-    if executable in {"bm25", "jevgrep-bm25"}:
-        return EventKind.SEARCH_BM25
     if executable in _TEST:
         return EventKind.TEST
     if executable in {
@@ -95,6 +98,43 @@ def classify_command(command: str) -> EventKind:
     ):
         return EventKind.EDIT
     return EventKind.OTHER_SHELL
+
+
+def count_search_invocations(events: Iterable[Any], marker: str = "Jevgrep:") -> int:
+    """Count Jevgrep searches that actually ran, from recorded command output.
+
+    A search that executed prints a ``Jevgrep:`` result header. Counting headers
+    rather than command kinds survives compound commands that defeat first-token
+    classification and skips invocations that never executed (short-circuited
+    ``&&`` chains, ``--help`` probes, missing binaries). When a command's output
+    was not captured at all (empty summary) it still counts if it classifies as a
+    search -- the run paid for it. Live case: the click-3533 a1 smoke reconciled
+    $0.000 against one real metered search because the invocation was embedded
+    in a compound command.
+    """
+    count = 0
+    for event in events:
+        summary = _event_summary(event)
+        headers = summary.count(marker)
+        if headers:
+            count += headers
+        elif not summary.strip() and _event_kind_value(event) == EventKind.SEARCH_JG.value:
+            count += 1
+    return count
+
+
+def _event_summary(event: Any) -> str:
+    result = event.get("result") if isinstance(event, dict) else getattr(event, "result", None)
+    if isinstance(result, dict):
+        summary = result.get("summary", "")
+    else:
+        summary = getattr(result, "summary", "")
+    return str(summary or "")
+
+
+def _event_kind_value(event: Any) -> str:
+    kind = event.get("kind") if isinstance(event, dict) else getattr(event, "kind", "")
+    return str(getattr(kind, "value", kind))
 
 
 def _result(raw: Any) -> ToolResult:

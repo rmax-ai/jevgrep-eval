@@ -34,9 +34,10 @@ from .harnesses.codex import (
 )
 from .isolation import agent_bwrap_argv, load_host_bindings
 from .materialize import materialize_repo
-from .models import EventKind, SpendEntry, TaskCase
+from .models import SpendEntry, TaskCase
 from .retrieval.bm25 import BM25Index
 from .runner import Runner, RunnerError
+from .traces import count_search_invocations
 from .traces_codex import parse_codex_rollout
 from .util import canonical_json, digest, write_canonical_json
 
@@ -403,19 +404,19 @@ def reserve_for_run(
     )
 
 
-def _event_kind(event: Any) -> str:
-    kind = event.get("kind") if isinstance(event, dict) else getattr(event, "kind", "")
-    return str(getattr(kind, "value", kind))
-
-
 def reconcile_for_run(
     ledger: SpendLedger,
     run_id: str,
     record_events: Iterable[Any],
     rate: Decimal | str,
 ) -> None:
-    """Commit the observed Jevgrep event count against the run reservation."""
-    count = sum(1 for event in record_events if _event_kind(event) == EventKind.SEARCH_JG.value)
+    """Commit the observed Jevgrep search count against the run reservation.
+
+    Counts executed searches from result headers (see ``count_search_invocations``),
+    not classified command kinds: compound commands defeat first-token
+    classification, and short-circuited ``jg`` invocations never spent.
+    """
+    count = count_search_invocations(record_events)
     ledger.reconcile(
         run_id,
         actual_usd=Decimal(str(rate)) * count,
@@ -807,9 +808,7 @@ def run_live(
         save_ledger(ledger, ledger_path)
         usage = provider_meta.get("usage", {})
         total_tokens = usage.get("total_tokens") if isinstance(usage, dict) else None
-        searches = sum(
-            1 for event in record.events if _event_kind(event) == EventKind.SEARCH_JG.value
-        )
+        searches = count_search_invocations(record.events)
         costs = usage_cost(
             jev_cash_usd=JG_RATE * searches,
             codex_quota_tokens=int(total_tokens) if total_tokens is not None else None,

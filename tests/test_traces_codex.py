@@ -255,3 +255,30 @@ def test_stream_unpaired_item_completed_is_tolerated():
     assert parsed.events[0].cmd_scrubbed == "ls -la"
     assert "start_end_pairing" in parsed.missing_dimensions
     assert parsed.coverage == "partial"
+
+
+def test_stream_file_change_becomes_edit_event():
+    """codex file_change items must parse as edit events, not poison coverage.
+
+    Live regression (a1 smoke): 'unknown stream item type file_change' entries
+    forced trace_coverage=partial on every editing run.
+    """
+    lines = [
+        (
+            '{"type":"item.started","item":{"id":"f1","type":"file_change","changes":'
+            '[{"path":"/workspace/src/a.py","kind":"update"}],"status":"in_progress"}}'
+        ),
+        (
+            '{"type":"item.completed","item":{"id":"f1","type":"file_change","changes":'
+            '[{"path":"/workspace/src/a.py","kind":"update"},'
+            '{"path":"/workspace/tests/t.py","kind":"add"}],"status":"completed"}}'
+        ),
+    ]
+    parsed = parse_codex_stream(lines, "/workspace")
+    assert len(parsed.events) == 1
+    event = parsed.events[0]
+    assert event.kind is EventKind.EDIT
+    assert event.files_touched == ["src/a.py", "tests/t.py"]
+    assert event.started and event.completed
+    assert "file_change" in event.cmd_scrubbed
+    assert "known_event_types" not in parsed.missing_dimensions

@@ -176,6 +176,41 @@ def _stream_item(value: dict[str, Any]) -> dict[str, Any] | None:
     return item if isinstance(item, dict) else None
 
 
+def _file_change_event(
+    item: dict[str, Any],
+    index: int,
+    workspace: str | None,
+    *,
+    started: bool,
+) -> Any:
+    """Normalize a codex ``file_change`` item into an edit-kind tool event."""
+    files: list[str] = []
+    changes = item.get("changes")
+    if isinstance(changes, list):
+        for change in changes:
+            if isinstance(change, dict) and change.get("path"):
+                path = str(change["path"])
+                if workspace:
+                    path = path.removeprefix(workspace.rstrip("/") + "/")
+                files.append(path)
+    command = "file_change: " + ", ".join(files) if files else "file_change"
+    raw: dict[str, Any] = {
+        "seq": index,
+        "started": started,
+        "completed": True,
+        "ts_offset_ms": 0,
+        "kind": EventKind.EDIT.value,
+        "files_touched": files,
+    }
+    return normalize_event(
+        raw,
+        seq=index,
+        workspace=workspace,
+        command_override=command,
+        result_override={"summary": ""},
+    )
+
+
 def parse_codex_stream(
     lines: Iterable[str],
     workspace: str | None = None,
@@ -186,6 +221,7 @@ def parse_codex_stream(
     missing: set[str] = set()
     token_records: list[dict[str, Any]] = []
     pending: dict[str, tuple[int, dict[str, Any]]] = {}
+    file_change_starts: set[str] = set()
     session_id: str | None = None
     terminal_seen = False
     provider_usage = _blank_provider_usage()
@@ -209,6 +245,9 @@ def parse_codex_stream(
             item_type = item.get("type") if item else None
             if item_type == "agent_message":
                 continue
+            if item_type == "file_change":
+                file_change_starts.add(str(item.get("id", "")) if item else "")
+                continue
             if item_type != "command_execution":
                 _unknown(
                     errors,
@@ -228,6 +267,21 @@ def parse_codex_stream(
             item = _stream_item(value)
             item_type = item.get("type") if item else None
             if item_type == "agent_message":
+                continue
+            if item_type == "file_change":
+                item_id = str(item.get("id", "")) if item else ""
+                started = item_id in file_change_starts
+                file_change_starts.discard(item_id)
+                if not started:
+                    missing.add("start_end_pairing")
+                events.append(
+                    _file_change_event(
+                        item if item is not None else {},
+                        index,
+                        workspace,
+                        started=started,
+                    )
+                )
                 continue
             if item_type != "command_execution":
                 _unknown(
