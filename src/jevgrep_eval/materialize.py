@@ -36,6 +36,11 @@ BENCHMARK_METADATA_NAMES = frozenset(
 )
 _CORPUS_ARTIFACT_NAMES = frozenset({"gold", "hidden", "evaluator"})
 
+# Pre-provisioned interpreter environments are run infrastructure, not task content: they
+# contain benign out-of-tree symlinks (bin/python -> managed interpreter) and must not
+# participate in workspace manifests/digests (they are identical across arms per task).
+WORKSPACE_EXCLUDED_NAMES = frozenset({".venv"})
+
 
 def is_benchmark_metadata_path(
     relative: str | Path,
@@ -77,6 +82,8 @@ def _walk(root: Path) -> list[WorkspaceFile]:
     files: list[WorkspaceFile] = []
     for path in sorted(root.rglob("*")):
         relative = normalize_path(path.relative_to(root).as_posix())
+        if any(part in WORKSPACE_EXCLUDED_NAMES for part in relative.split("/")):
+            continue
         if is_benchmark_metadata_path(relative):
             continue
         if path.is_symlink():

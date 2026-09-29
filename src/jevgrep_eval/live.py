@@ -176,7 +176,13 @@ def _setup_commands(
             raise LiveHarnessError("setup commands must be argv lists or strings")
         return [_command_argv(item) for item in setup_commands]
     if any((out / name).is_file() for name in ("pyproject.toml", "setup.py", "setup.cfg")):
-        return [["uv", "sync", "--frozen"]]
+        # Verified offline recipe (V5 staging): pinned 3.12 venv + editable install from the
+        # warmed uv cache. `uv sync` is NOT used: default dependency groups pull packages the
+        # offline cache does not carry (e.g. pyright in click's typing group).
+        return [
+            ["uv", "venv", "--python", "3.12"],
+            ["uv", "pip", "install", "pytest", "-e", ".[dev]"],
+        ]
     return []
 
 
@@ -194,25 +200,32 @@ def prepare_workspace(
     if not commands:
         return
     environment = os.environ.copy()
+    # Strip interpreter-manager env from the caller (a leaked VIRTUAL_ENV redirected uv to the
+    # wrong environment during the operator smoke; V4b recorded the sibling bwrap env leak).
+    for leaked in ("VIRTUAL_ENV", "PYTHONHOME", "PYTHONPATH"):
+        environment.pop(leaked, None)
     environment["UV_CACHE_DIR"] = str(dep_cache.expanduser().resolve())
     environment["UV_OFFLINE"] = "1"
+    environment["UV_PYTHON"] = "3.12"
     user_bin = Path.home() / ".local" / "bin"
     environment["PATH"] = os.pathsep.join(
         [str(user_bin), environment.get("PATH", "")]
     ).rstrip(os.pathsep)
     dep_cache.mkdir(parents=True, exist_ok=True)
 
-    if setup_commands is None and commands == [["uv", "sync", "--frozen"]]:
-        try:
-            subprocess.run(commands[0], cwd=out, env=environment, check=True)
-            return
-        except subprocess.CalledProcessError:
-            fallback = ["uv", "pip", "install", "-e", ".", "--no-build-isolation"]
-            subprocess.run(fallback, cwd=out, env=environment, check=True)
-            return
+    defaulted = setup_commands is None
     for command in commands:
-        if command:
+        if not command:
+            continue
+        try:
             subprocess.run(command, cwd=out, env=environment, check=True)
+        except subprocess.CalledProcessError:
+            if defaulted and command[-3:] == ["pytest", "-e", ".[dev]"]:
+                # Base-era repos without a [dev] extra install as plain editable + pytest.
+                fallback = ["uv", "pip", "install", "pytest", "-e", "."]
+                subprocess.run(fallback, cwd=out, env=environment, check=True)
+                continue
+            raise
 
 
 def seed_codex_home(
@@ -559,6 +572,7 @@ def _source_repo(corpus_root: Path, task: dict[str, Any]) -> Path:
         candidates.append(Path(str(configured)))
     candidates.extend(
         [
+            corpus_root.parent / ".staging" / "corpus-inputs" / "repo-cache" / repo_id,
             corpus_root / "repos" / repo_id,
             corpus_root / ".repos" / repo_id,
             corpus_root / ".cache" / repo_id,
@@ -578,6 +592,11 @@ def _dep_cache(corpus_root: Path, task: dict[str, Any]) -> Path:
     configured = task.get("dependency_cache")
     if configured:
         return Path(str(configured))
+    staged = corpus_root.parent / ".staging" / "corpus-inputs" / "dep-cache" / repo_id
+    # V5 convention: uv-kind caches live at <repo_id>/uv (the actual UV_CACHE_DIR root).
+    for candidate in (staged / "uv", staged):
+        if candidate.is_dir():
+            return candidate
     return corpus_root.parent / "dep-cache" / repo_id
 
 
@@ -615,7 +634,12 @@ def _task_setup_commands(task: dict[str, Any]) -> list[str] | None:
         return None
     if not isinstance(commands, list):
         raise LiveHarnessError("task setup_commands must be a list")
-    return [str(command) for command in commands]
+    # task.yaml records human-readable preparation notes (strings), not executable commands;
+    # only argv-list entries are executable. All-notes → None → the verified default recipe.
+    executable = [list(command) for command in commands if isinstance(command, (list, tuple))]
+    if not executable:
+        return None
+    return executable
 
 
 def run_live(

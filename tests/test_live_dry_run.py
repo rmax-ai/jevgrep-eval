@@ -5,6 +5,8 @@ from pathlib import Path
 from jevgrep_eval.costing import SpendLedger
 from jevgrep_eval.live import (
     JG_RATE,
+    _dep_cache,
+    _source_repo,
     build_prompt,
     load_task,
     plan_run,
@@ -186,3 +188,15 @@ def test_reconcile_counts_only_jg_events():
         JG_RATE,
     )
     assert ledger.entries[0].estimate_usd == Decimal("0.144")
+
+
+def test_staged_layout_resolution(tmp_path: Path):
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    repo = tmp_path / ".staging" / "corpus-inputs" / "repo-cache" / "tiny__repo"
+    repo.mkdir(parents=True)
+    dep = tmp_path / ".staging" / "corpus-inputs" / "dep-cache" / "tiny__repo" / "uv"
+    dep.mkdir(parents=True)
+    task = {"repo_id": "tiny__repo"}
+    assert _source_repo(corpus, task) == repo
+    assert _dep_cache(corpus, task) == dep

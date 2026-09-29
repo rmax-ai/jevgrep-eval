@@ -64,10 +64,21 @@ def build_evaluator_input(
 
 def _run_tests(argv: list[str], cwd: Path, *, timeout_s: float) -> TestExecution:
     process: subprocess.Popen[bytes] | None = None
+    environment = os.environ.copy()
+    # Resolve test commands against the workspace interpreter environment when present
+    # (prepped workspaces carry a .venv; the recorded commands use a bare `python`).
+    venv_bin = cwd / ".venv" / "bin"
+    if venv_bin.is_dir():
+        environment["PATH"] = os.pathsep.join(
+            [str(venv_bin), environment.get("PATH", "")]
+        ).rstrip(os.pathsep)
+        environment["VIRTUAL_ENV"] = str(cwd / ".venv")
+        environment.pop("PYTHONHOME", None)
     try:
         process = subprocess.Popen(
             argv,
             cwd=cwd,
+            env=environment,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
