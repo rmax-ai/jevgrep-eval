@@ -50,6 +50,14 @@ def _int_value(value: Any, default: int = 0) -> int:
         return default
 
 
+_FINISHED_STATUSES = {"completed", "failed"}
+
+
+def _finished(status: Any) -> bool:
+    """A status is finished when the execution ended, successfully or not."""
+    return status in _FINISHED_STATUSES
+
+
 def _timestamp_ms(value: Any) -> int:
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return max(0, int(value))
@@ -252,7 +260,7 @@ def parse_codex_stream(
                     ),
                     summary=item.get("aggregated_output", "") if item else "",
                     started=started is not None,
-                    completed=status == "completed",
+                    completed=_finished(status),
                 )
             )
             continue
@@ -480,10 +488,10 @@ def parse_codex_rollout(
                             else None
                         ),
                         summary=summary,
-                        completed=status == "completed",
+                        completed=_finished(status),
                     )
                 )
-                if status != "completed":
+                if not _finished(status):
                     missing.add("start_end_pairing")
                 continue
             _unknown(errors, missing, index, f"unknown rollout payload type {payload_type!r}")

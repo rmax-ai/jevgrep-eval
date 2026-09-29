@@ -20,6 +20,7 @@ from .envelope import (
     save_envelope,
 )
 from .materialize import (
+    WORKSPACE_EXCLUDED_NAMES,
     MaterializationError,
     is_benchmark_metadata_path,
     snapshot,
@@ -61,6 +62,8 @@ def _safe_paths(root: Path, *, allowed_paths: set[str] | None = None) -> list[Pa
     paths: list[Path] = []
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root)
+        if any(part in WORKSPACE_EXCLUDED_NAMES for part in relative.parts):
+            continue
         if is_benchmark_metadata_path(relative):
             raise MalformedPatchError(f"benchmark metadata path: {relative}")
         normalized = normalize_path(relative.as_posix())

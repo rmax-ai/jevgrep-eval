@@ -81,11 +81,25 @@ def load_condition(path: Path) -> dict[str, Any]:
     return _load_mapping(path, "condition")
 
 
+# Arm-neutral standing directive: the frozen task statements are sanitized of fix-oriented
+# wording, so the harness template must state the work expectation explicitly. The text is
+# identical across arms and carries no solution hints. Pilot finding (2026-09-29): without it
+# the a0 smoke agent concluded read-only investigation ("I haven't changed anything").
+STANDING_DIRECTIVE = (
+    "You are working in a repository checkout. The report below describes a behavioral issue. "
+    "Resolve the issue by modifying the repository as needed, and verify your change with the "
+    "test suite."
+)
+
+
 def build_prompt(statement: str, fragment: str) -> str:
-    """Build the exact common-plus-condition prompt."""
+    """Build the exact directive-plus-statement-plus-condition prompt."""
     statement = str(statement).strip()
     fragment = str(fragment or "").strip()
-    return f"{statement}\n\n{fragment}" if fragment else statement
+    parts = [STANDING_DIRECTIVE, statement]
+    if fragment:
+        parts.append(fragment)
+    return "\n\n".join(parts)
 
 
 def _task_definition_path(corpus_root: Path, task_id: str) -> Path:
@@ -601,11 +615,16 @@ def _dep_cache(corpus_root: Path, task: dict[str, Any]) -> Path:
 
 
 def _duration_seconds(record: Any) -> float:
-    created = getattr(record, "created_at", None)
-    finished = getattr(record, "finished_at", None)
-    if created is None or finished is None:
-        return 0.0
-    return max(0.0, (finished - created).total_seconds())
+    """Wall seconds from the first lifecycle stage to the last."""
+    stages = getattr(record, "stage_records", None) or []
+    try:
+        first = getattr(stages[0], "at", None)
+        last = getattr(stages[-1], "at", None)
+        if first is not None and last is not None:
+            return max(0.0, (last - first).total_seconds())
+    except (TypeError, AttributeError):
+        pass
+    return 0.0
 
 
 def _capture_rollout(run_dir: Path, workspace: Path) -> dict[str, Any]:

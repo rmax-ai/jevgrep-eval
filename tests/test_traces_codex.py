@@ -211,3 +211,27 @@ def test_rollout_exec_fallback_is_secondary_to_command_execution():
     assert len(parsed.events) == 1
     assert parsed.events[0].kind == EventKind.EDIT
     assert parsed.events[0].exit_code == 0
+
+
+def test_failed_command_is_finished_not_partial():
+    lines = [
+        '{"type":"thread.started","thread_id":"t1"}',
+        (
+            '{"type":"item.started","item":{"id":"i1","type":"command_execution",'
+            '"command":"/usr/bin/bash -lc \'git status\'","status":"in_progress"}}'
+        ),
+        (
+            '{"type":"item.completed","item":{"id":"i1","type":"command_execution",'
+            '"command":"/usr/bin/bash -lc \'git status\'","aggregated_output":"fatal",'
+            '"exit_code":1,"status":"failed"}}'
+        ),
+        (
+            '{"type":"turn.completed","usage":{"input_tokens":1,"cached_input_tokens":0,'
+            '"output_tokens":1,"reasoning_output_tokens":0}}'
+        ),
+    ]
+    parsed = parse_codex_stream(lines)
+    assert parsed.coverage == "full"
+    assert "start_end_pairing" not in parsed.missing_dimensions
+    assert parsed.events[0].completed is True
+    assert parsed.events[0].exit_code == 1

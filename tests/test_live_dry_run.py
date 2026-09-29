@@ -165,8 +165,13 @@ def test_budget_failure_happens_before_materialization(tmp_path: Path):
 
 
 def test_prompt_builder():
-    assert build_prompt("statement", "") == "statement"
-    assert build_prompt(" statement ", " fragment ") == "statement\n\nfragment"
+    from jevgrep_eval.live import STANDING_DIRECTIVE
+
+    assert build_prompt("statement", "") == f"{STANDING_DIRECTIVE}\n\nstatement"
+    assert (
+        build_prompt(" statement ", " fragment ")
+        == f"{STANDING_DIRECTIVE}\n\nstatement\n\nfragment"
+    )
 
 
 def test_task_loading_includes_evaluator_artifacts(tmp_path: Path):
