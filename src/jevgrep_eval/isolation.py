@@ -226,7 +226,9 @@ def agent_bwrap_argv(
             "/workspace",
             "--setenv",
             "PATH",
-            f"{node}/bin:/workspace/.venv/bin:/usr/bin:/bin",
+            # /usr/local/bin carries the optional bm25 shim bind; keep the env
+            # uniform across arms (a missing dir on PATH is harmless).
+            f"{node}/bin:/usr/local/bin:/workspace/.venv/bin:/usr/bin:/bin",
             "--setenv",
             "HOME",
             "/codex-home",

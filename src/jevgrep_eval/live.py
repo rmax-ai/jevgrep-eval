@@ -306,12 +306,17 @@ def stage_bm25(
     BM25Index.from_root(workspace).write_artifact(index)
     tools = run_dir / "tools"
     tools.mkdir(parents=True, exist_ok=True)
-    python = (engine_venv / "bin" / "python").resolve()
+    # The venv interpreter (NOT resolved to the bare uv build) carries the
+    # pyvenv.cfg context and the editable jevgrep_eval install; the bare
+    # interpreter fails with ModuleNotFoundError.  agent_bwrap_argv binds this
+    # shim at /usr/local/bin (which is on the sandbox PATH); bash is the only
+    # shell mounted in the sandbox, so the shebang must not be /bin/sh.
+    python = engine_venv / "bin" / "python"
     shim = tools / "bm25"
     shim.write_text(
-        "#!/bin/sh\n"
+        "#!/usr/bin/bash\n"
         f"exec {shlex.quote(str(python))} -m jevgrep_eval.cli retrieve bm25 query "
-        '/bm25.index "$*"\n',
+        '/bm25.index "$@"\n',
         encoding="utf-8",
     )
     shim.chmod(0o755)

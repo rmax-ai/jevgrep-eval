@@ -63,7 +63,7 @@ def test_agent_argv_matches_validated_recipe(tmp_path: Path):
         if value == "--bind"
     }
     for name, value in (
-        ("PATH", f"{bindings['node']}/bin:/workspace/.venv/bin:/usr/bin:/bin"),
+        ("PATH", f"{bindings['node']}/bin:/usr/local/bin:/workspace/.venv/bin:/usr/bin:/bin"),
         ("HOME", "/codex-home"),
         ("CODEX_HOME", "/codex-home"),
         ("LANG", "C.UTF-8"),
@@ -97,6 +97,9 @@ def test_bm25_mounts_are_optional_and_sorted(tmp_path: Path):
     assert (str((tmp_path / "bm25.index").resolve()), "/bm25.index") in _bind_targets(with_bm25)
     assert (str((tmp_path / "engine").resolve()), str((tmp_path / "engine").resolve())) in _bind_targets(with_bm25)
     assert (str((tmp_path / "engine-venv").resolve()), str((tmp_path / "engine-venv").resolve())) in _bind_targets(with_bm25)
+    # Live regression (a3 smoke): the shim is bound at /usr/local/bin/bm25, so that
+    # directory must be on the sandbox PATH or the agent sees "command not found".
+    assert "/usr/local/bin" in (with_bm25[with_bm25.index("PATH") + 1]).split(":")
     assert with_bm25 == agent_bwrap_argv(**common, bm25_index=tmp_path / "bm25.index", bm25_tool=tmp_path / "tools" / "bm25")
 
 

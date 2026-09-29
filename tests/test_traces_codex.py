@@ -282,3 +282,26 @@ def test_stream_file_change_becomes_edit_event():
     assert event.started and event.completed
     assert "file_change" in event.cmd_scrubbed
     assert "known_event_types" not in parsed.missing_dimensions
+
+
+def test_stream_file_change_sandbox_paths_with_host_workspace():
+    """Live regression (a3 smoke): the parser receives the HOST workspace path,
+    but codex reports file_change paths in the sandbox namespace (/workspace/...).
+    Those must map to workspace-relative files instead of raising
+    'path is not safely relative' and aborting record assembly."""
+    lines = [
+        (
+            '{"type":"item.started","item":{"id":"f1","type":"file_change","changes":'
+            '[{"path":"/workspace/src/a.py","kind":"update"}],"status":"in_progress"}}'
+        ),
+        (
+            '{"type":"item.completed","item":{"id":"f1","type":"file_change","changes":'
+            '[{"path":"/workspace/src/a.py","kind":"update"},'
+            '{"path":"/workspace/tests/t.py","kind":"add"}],"status":"completed"}}'
+        ),
+    ]
+    parsed = parse_codex_stream(lines, "/home/user/runs/task-a0-r0/workspace")
+    assert len(parsed.events) == 1
+    event = parsed.events[0]
+    assert event.files_touched == ["src/a.py", "tests/t.py"]
+    assert not parsed.errors

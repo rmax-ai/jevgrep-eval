@@ -176,6 +176,24 @@ def _stream_item(value: dict[str, Any]) -> dict[str, Any] | None:
     return item if isinstance(item, dict) else None
 
 
+SANDBOX_WORKSPACE_ROOT = "/workspace"
+
+
+def _sandbox_relative(path: str) -> str:
+    """Map sandbox-namespace paths (``/workspace/...``) back to workspace-relative.
+
+    The agent runs with the workspace bound at ``/workspace`` (isolation.py) and
+    codex reports ``file_change`` paths in that sandbox namespace — not relative
+    to the host workspace directory that parsers receive.
+    """
+    if path == SANDBOX_WORKSPACE_ROOT:
+        return "."
+    prefix = SANDBOX_WORKSPACE_ROOT + "/"
+    if path.startswith(prefix):
+        return path[len(prefix) :]
+    return path
+
+
 def _file_change_event(
     item: dict[str, Any],
     index: int,
@@ -189,7 +207,7 @@ def _file_change_event(
     if isinstance(changes, list):
         for change in changes:
             if isinstance(change, dict) and change.get("path"):
-                path = str(change["path"])
+                path = _sandbox_relative(str(change["path"]))
                 if workspace:
                     path = path.removeprefix(workspace.rstrip("/") + "/")
                 files.append(path)
