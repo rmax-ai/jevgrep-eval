@@ -1,8 +1,10 @@
 """Bubblewrap argv recipes and probe artifacts.
 
-The exact recipes require Stage 0.5 V5 validation on the target host,
-including a Python test runner inside Tier A.  This module generates recipes
-and records probe scripts; it does not claim that a recipe was validated.
+The recipes are validated live on the run host as of Stage-0.5 V4 (2026-09-29):
+connectivity-fail, deny-read, Python test execution inside Tier A, group-kill
+quiescence, and Tier-B provider reachability all pass (evidence: ops records +
+`configs/isolation/tier_*.yaml` validation lines). This module generates
+recipes and records probe scripts; it does not execute them at runtime.
 """
 
 from __future__ import annotations

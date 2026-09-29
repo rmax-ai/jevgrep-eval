@@ -15,6 +15,7 @@ documented, not hidden.
 
 Snapshots reject special files, escaping symlinks, `.git`, and policy-violating
 paths. The runner hashes around a snapshot twice and captures patches in a
-private throwaway git worktree. Stage 0.5 V5 must validate the exact recipes,
-including Python test execution inside Tier A; W1a does not claim that
-validation has happened.
+private throwaway git worktree. Stage 0.5 V4 (2026-09-29) validated the exact
+recipes live: connectivity-fail, deny-read, Python test execution inside
+Tier A, group-kill quiescence, and Tier-B provider reachability all pass
+(evidence: `configs/isolation/tier_*.yaml` validation lines + ops records).
