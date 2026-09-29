@@ -13,6 +13,7 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from ..materialize import WORKSPACE_EXCLUDED_NAMES
 from ..models import RetrievalHit, RetrievalResult
 from ..util import canonical_json, digest, digest_bytes, normalize_path
 from .chunking import DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP, chunk_document, tokenize
@@ -20,6 +21,23 @@ from .chunking import DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP, chunk_document, token
 DEFAULT_K1 = 1.2
 DEFAULT_B = 0.75
 DEFAULT_EPSILON = 0.25
+
+
+def _indexable(root: Path, path: Path) -> bool:
+    """True for repository files; workspace scaffolding is never indexed.
+
+    Live regression (a3 smoke): the prepared workspace carries a ``.venv`` (and
+    pytest caches) created by the environment recipe; indexing it surfaced
+    library internals (``.venv/lib/...``) in ranked results while rg-based arms
+    skip hidden directories by default.  The exclusion set is shared with the
+    workspace materializer so "the repository corpus" means one thing everywhere.
+    """
+    if not path.is_file():
+        return False
+    return not any(
+        part in WORKSPACE_EXCLUDED_NAMES or part == ".git"
+        for part in path.relative_to(root).parts
+    )
 
 
 @dataclass(frozen=True)
@@ -37,7 +55,7 @@ def corpus_fingerprint(root: Path, *, eligible_paths: Iterable[str] | None = Non
     allowed = {normalize_path(path) for path in eligible_paths} if eligible_paths else None
     rows: list[dict[str, str]] = []
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or ".git" in path.relative_to(root).parts:
+        if not _indexable(root, path):
             continue
         relative = normalize_path(path.relative_to(root).as_posix())
         if allowed is not None and relative not in allowed:
@@ -88,7 +106,7 @@ class BM25Index:
         allowed = {normalize_path(path) for path in eligible_paths} if eligible_paths else None
         chunks: list[Chunk] = []
         for path in sorted(root.rglob("*")):
-            if not path.is_file() or ".git" in path.relative_to(root).parts:
+            if not _indexable(root, path):
                 continue
             relative = normalize_path(path.relative_to(root).as_posix())
             if allowed is not None and relative not in allowed:

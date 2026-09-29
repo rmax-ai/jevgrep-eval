@@ -3,5 +3,5 @@ label: bm25-available
 retrieval_tools: [bm25]
 forced_first: none
 oracle_hint: false
-prompt_fragment: "A code-search tool `bm25` is available on PATH for keyword code retrieval over this repository; you may use it alongside standard shell tools."
+prompt_fragment: "A code-search tool `bm25` is available on PATH (`bm25 \"<keywords>\"`) for keyword code retrieval over this repository; you may use it alongside standard shell tools."
 notes: "Primary deterministic BM25 availability arm."

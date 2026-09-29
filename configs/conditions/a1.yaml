@@ -3,5 +3,5 @@ label: jevgrep-available
 retrieval_tools: [jg]
 forced_first: none
 oracle_hint: false
-prompt_fragment: "A code-search tool `jg` is available on PATH for semantic code retrieval over this repository; you may use it alongside standard shell tools."
+prompt_fragment: "A code-search tool `jg` is available on PATH (`jg \"<query>\"`) for semantic code retrieval over this repository; you may use it alongside standard shell tools."
 notes: "Primary full-configuration Jevgrep availability arm."
