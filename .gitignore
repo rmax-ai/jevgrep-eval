@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environments / build
+.venv/
+dist/
+build/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Round working dirs (never commit)
+.staging/
+runs/
+workspaces/
+cache/
+state/
+*.tmp-*
