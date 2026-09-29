@@ -71,6 +71,39 @@ def test_patch_capture_ignores_tool_generated_artifacts(mini_tree: Path, tmp_pat
     assert replayed.workspace_digest == snapshot(after).workspace_digest
 
 
+def test_empty_metadata_directory_is_tolerated(mini_tree: Path, tmp_path: Path):
+    """Live regression (click-3764 a1): agent tooling can drop bare ``.git/``,
+    ``.agents/``, ``.codex/`` directory stubs into the workspace mid-run.  An
+    empty metadata directory carries no leak (snapshot() already skips it) and
+    must not block capture — observed live as: timeout run + refused capture →
+    empty digests → evaluation silently skipped.
+    """
+    import shutil
+
+    after = tmp_path / "after"
+    shutil.copytree(mini_tree, after, symlinks=True)
+    (after / "src" / "app.py").write_text("def answer():\n    return 3\n", encoding="utf-8")
+    for name in (".git", ".agents", ".codex"):
+        (after / name).mkdir()
+    captured = capture_patch(mini_tree, after)
+    assert captured.replay_equal
+    assert b"return 3" in captured.patch
+    assert b".agents" not in captured.patch
+
+
+def test_metadata_file_content_is_still_fail_closed(mini_tree: Path, tmp_path: Path):
+    """Only bare metadata directories are tolerated; metadata *content* (files)
+    remains fail-closed at the capture policy boundary."""
+    import shutil
+
+    after = tmp_path / "after"
+    shutil.copytree(mini_tree, after, symlinks=True)
+    (after / ".git").mkdir()
+    (after / ".git" / "config").write_text("[core]\n", encoding="utf-8")
+    with pytest.raises(MalformedPatchError):
+        capture_patch(mini_tree, after)
+
+
 def test_project_ignored_changes_still_capture(mini_tree: Path, tmp_path: Path):
     """Scratch capture is scoped by WORKSPACE_EXCLUDED_NAMES, not the project .gitignore.
 

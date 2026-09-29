@@ -65,6 +65,13 @@ def _safe_paths(root: Path, *, allowed_paths: set[str] | None = None) -> list[Pa
         if any(part in WORKSPACE_EXCLUDED_NAMES for part in relative.parts):
             continue
         if is_benchmark_metadata_path(relative):
+            if path.is_dir() and not path.is_symlink():
+                # Bare metadata-named directories (e.g. a stray ``.git/`` stub
+                # dropped by agent tooling) carry nothing to leak or capture and
+                # are already skipped by snapshot()/copy_tree(); their file
+                # descendants — if any exist — are yielded by rglob and rejected
+                # individually.  Only metadata *content* is fail-closed.
+                continue
             raise MalformedPatchError(f"benchmark metadata path: {relative}")
         normalized = normalize_path(relative.as_posix())
         if path.is_symlink() and path.resolve() != root and root not in path.resolve().parents:
