@@ -7,6 +7,8 @@ Patch similarity is retained as a diagnostic and is never a success input.
 from __future__ import annotations
 
 import os
+import re
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -117,11 +119,52 @@ def _run_tests(argv: list[str], cwd: Path, *, timeout_s: float) -> TestExecution
     return TestExecution(process.returncode == 0, True, False, output or b"")
 
 
-def _apply_hidden_patch(workspace: Path, hidden_patch: Path | None) -> None:
+_DIFF_HEADER = re.compile(r'^diff --git "?a/(.+?)"? "?b/(.+?)"?$', re.MULTILINE)
+
+
+def _hidden_patch_paths(hidden_patch: Path) -> list[str]:
+    """Repository-relative paths claimed by the hidden test patch."""
+    text = hidden_patch.read_text(encoding="utf-8", errors="replace")
+    paths: list[str] = []
+    for match in _DIFF_HEADER.finditer(text):
+        source, target = match.group(1), match.group(2)
+        if source != target:
+            raise ScoringError(f"hidden test patch renames files: {source} -> {target}")
+        paths.append(target)
+    return paths
+
+
+def _reset_patch_owned_files(workspace: Path, base: Path, paths: Iterable[str]) -> None:
+    """Restore files the hidden patch owns to their base revision.
+
+    Agents may edit test files during a run; the hidden suite is the oracle and
+    must apply to its own (base-context) versions, SWE-bench style. Without this
+    reset, an agent edit to a file the hidden patch touches makes ``git apply``
+    reject the patch and the run records ``tests_not_run`` (live case:
+    click-3533 smoke, 2026-09-29).
+    """
+    for relative in paths:
+        source = base / relative
+        destination = workspace / relative
+        if source.is_file():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+        elif destination.exists():
+            destination.unlink()
+
+
+def _apply_hidden_patch(
+    workspace: Path,
+    hidden_patch: Path | None,
+    *,
+    base: Path | None = None,
+) -> None:
     if hidden_patch is None:
         return
     if not hidden_patch.is_file():
         raise ScoringError(f"hidden test patch is missing: {hidden_patch}")
+    if base is not None:
+        _reset_patch_owned_files(workspace, base, _hidden_patch_paths(hidden_patch))
     try:
         environment = os.environ.copy()
         environment["GIT_CEILING_DIRECTORIES"] = str(workspace.parent.resolve())
@@ -222,7 +265,7 @@ def evaluate(
             else TestExecution(False, False, output=b"upstream command not configured")
         )
     try:
-        _apply_hidden_patch(destination, hidden_test_patch)
+        _apply_hidden_patch(destination, hidden_test_patch, base=base_workspace)
     except ScoringError as exc:
         return EvaluationRecord(
             run_id=run_id or task.task_id,

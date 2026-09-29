@@ -51,6 +51,9 @@ JG_RESERVATION = JG_RATE * JG_SEARCHES
 JG_RATE_SOURCE = (
     "LIVE-MEASURED: gateway /v1/credits delta (V6 2026-09-29; n=4)"
 )
+# Frozen jg provider baseURL (vercel provider, pinned in Stage-0.5 V1) — the only
+# host the sandboxed network proxy allows (see seed_codex_home).
+JG_PROVIDER_DOMAIN = "ai-gateway.vercel.sh"
 
 
 class LiveHarnessError(ValueError):
@@ -262,9 +265,26 @@ def seed_codex_home(
     auth_destination = codex_home / "auth.json"
     shutil.copyfile(auth_source, auth_destination)
     auth_destination.chmod(0o600)
+    # Protocol (capability set, amended 2026-09-29 after the a0 smoke showed the
+    # agent fetching the upstream fix over the web): the measured capability is
+    # repository retrieval. Provider-side web surfaces are disabled, and sandboxed
+    # command egress is constrained by the managed network proxy to the retrieval
+    # provider gateway only. Verified live: non-allowlisted hosts receive a proxy
+    # 403; direct egress has no resolver at all; the gateway itself answers (308).
     config = (
         f"model = {json.dumps(model)}\n"
         f"model_reasoning_effort = {json.dumps(effort)}\n\n"
+        'web_search = "disabled"\n\n'
+        "[sandbox_workspace_write]\n"
+        "network_access = true\n\n"
+        "[features]\n"
+        "apps = false\n"
+        "browser_use = false\n"
+        "computer_use = false\n\n"
+        "[features.network_proxy]\n"
+        "enabled = true\n\n"
+        "[features.network_proxy.domains]\n"
+        f"{json.dumps(JG_PROVIDER_DOMAIN)} = \"allow\"\n\n"
         '[projects."/workspace"]\n'
         'trust_level = "trusted"\n'
     )

@@ -10,8 +10,19 @@ Tier A uses bubblewrap `--unshare-all`, a minimal filesystem, curated
 file-level binary binds, and a bind of only the workspace. The negative DNS
 and TCP connectivity probe is an artifact whose result is recorded per run.
 Tier B keeps the provider network for Jevgrep while applying the same
-filesystem minimization and deny-read probes. Tier B's residual egress risk is
-documented, not hidden.
+filesystem minimization and deny-read probes.
+
+**Agent web lookup (closed 2026-09-29, probe-verified).** The a0 smoke showed
+the agent retrieving the upstream fix over the web (provider web-search MCP
+tool), which would contaminate repository-retrieval measurement. The capability
+set is now uniform across arms: provider-side web search disabled, apps /
+browser / computer-use features off, and sandboxed command egress routed
+through the managed network proxy with a single allowlisted host — the frozen
+Jevgrep provider gateway. Live verification: (1) `curl https://api.github.com`
+→ proxy 403 "domain is not on the allowlist"; (2) the same curl with
+`--noproxy '*'` → DNS failure (no resolver outside the proxy); (3)
+`getent hosts` → rc=2; (4) `curl https://ai-gateway.vercel.sh/` → HTTP 308
+through the proxy. Direct egress is impossible, not merely discouraged.
 
 Agent runs execute on the network-allowed tier with a fully cleared child
 environment (`subprocess env={}`); only explicit `--setenv` values reach the

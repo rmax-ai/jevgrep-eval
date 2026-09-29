@@ -205,3 +205,33 @@ def test_staged_layout_resolution(tmp_path: Path):
     task = {"repo_id": "tiny__repo"}
     assert _source_repo(corpus, task) == repo
     assert _dep_cache(corpus, task) == dep
+
+
+def test_seed_codex_home_restricts_web_and_network(tmp_path: Path):
+    """The per-run Codex home enforces the amended capability set.
+
+    Live regression (a0 smoke 2026-09-29): the agent fetched the upstream fix
+    over the web. The seed must disable provider web surfaces and constrain
+    sandboxed command egress to the frozen Jevgrep provider gateway.
+    """
+    from jevgrep_eval.live import JG_PROVIDER_DOMAIN, seed_codex_home
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "auth.json").write_text("{}", encoding="utf-8")
+    home = seed_codex_home(
+        tmp_path / "run",
+        {"codex_home_source": str(source)},
+        model="gpt-6-luna",
+        effort="max",
+    )
+    config = (home / "config.toml").read_text(encoding="utf-8")
+    assert 'web_search = "disabled"' in config
+    assert "apps = false" in config
+    assert "browser_use = false" in config
+    assert "computer_use = false" in config
+    assert "[sandbox_workspace_write]" in config
+    assert "network_access = true" in config
+    assert "[features.network_proxy]" in config
+    assert "enabled = true" in config
+    assert f'"{JG_PROVIDER_DOMAIN}" = "allow"' in config
