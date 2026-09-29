@@ -169,7 +169,9 @@ def _apply_hidden_patch(
         environment = os.environ.copy()
         environment["GIT_CEILING_DIRECTORIES"] = str(workspace.parent.resolve())
         completed = subprocess.run(
-            ["git", "apply", "--binary", "--whitespace=nowarn", str(hidden_patch)],
+            # Resolve: git apply runs with cwd=workspace, so a caller-supplied
+            # relative path must be anchored before the child resolves it.
+            ["git", "apply", "--binary", "--whitespace=nowarn", str(hidden_patch.resolve())],
             cwd=workspace,
             capture_output=True,
             check=False,
