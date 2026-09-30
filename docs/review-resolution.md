@@ -21,3 +21,26 @@ operator review.
 The remaining minor items are either explicit protocol limitations or outside
 the offline W1b acceptance boundary. They are not presented as validated
 production isolation or live-provider claims.
+
+## Closeout integrity review (2026-09-30) — findings + disposition
+
+Independent adversarial review (non-authoring lane; codex `gpt-6-sol`, medium) over the
+closeout revision `deba489`. Full reviewer artifact (paths sanitized):
+`reports/closeout-integrity-review-20260930.md`. Verdict at review time: **RED**;
+all seven findings folded the same day.
+
+| # | Finding (severity) | Disposition | Evidence |
+|---|---|---|---|
+| 1 | Tracked branch carried no run evidence (BLOCKER) | FIXED — sanitized content-addressed evidence bundle committed (`reports/pilot-v1-evidence/`, 36 cells; per-file sha256 + `bundle_digest` in the manifest); the report rebuilds byte-identically from the bundle alone | manifest (`verification 36/36`); repro `report_digest` == `reports/pilot-v1.json` |
+| 2 | Evaluation/cost sidecars not bound to envelopes (BLOCKER) | FIXED — `verify_run` binds `evaluation-result.json` byte-exactly to `envelope.evaluation_result_digest`; the report marks mismatched/missing artifacts ineligible and withholds its integrity claim; costs are bound by the bundle manifest (envelope v1 has no cost component — documented limitation) | `tests/test_envelope.py`, `tests/test_report_live.py` (tamper → ineligible + claim withheld) |
+| 3 | Jev cash presented as metered receipts (MAJOR) | FIXED (labeling) — claim relabeled as modeled spend at the frozen measured rate; report `pricing_basis` + `limitations` added; `configs/pricing/pricing.yaml` provenance updated to the V6 credit-delta measurement; per-run receipts recorded as unavailable (account-level only) | report `spend.pricing_basis`; pricing.yaml diff |
+| 4 | No per-run isolation/network probe artifacts (MAJOR) | DEFERRED with hard gate — claim-map entry withheld; limitation recorded; no holdout claim may proceed without per-run probe artifacts | report `claim_map`, `limitations` |
+| 5 | `experiments/pilot.yaml` draft; blank digests (MAJOR) | FIXED — frozen; corpus-manifest / selection-log / pricing sha256 digests filled (artifacts unchanged since the corpus freeze) | pilot.yaml diff |
+| 6 | Simulated detection relied on the self-reported flag (MAJOR) | FIXED — live builder also refuses on run-id/record markers; claim evidence updated; adversarial forgery rests on the envelope/bundle bindings | `test_live_report_refuses_mock_run_ids` |
+| 7 | Sensitivity set excluded failed assignments (MAJOR) | FIXED — sensitivity = all assigned cells; invalidated cells count as unsuccessful with explicit `ineligible_counted` | `test_live_report_sensitivity_counts_failed_assignments` |
+
+Additionally found and fixed while folding (not in the original findings): empty-patch runs
+failed `verify_run` ("empty retained bytes") although an empty patch is a valid scored
+attempt under the protocol; the verifier now accepts zero-length retained bytes exactly
+when the component digest is the empty-bytes digest
+(`tests/test_envelope.py::test_empty_patch_component_verifies`).
