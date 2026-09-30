@@ -1,7 +1,8 @@
 # Spend projection — Stage 0.5 V7 (2026-09-29)
 
-All amounts USD. Anchors are **live-measured** (receipts retained in the V6 evidence set),
-not modeled. This document feeds the pilot/holdout drafts and the ledger reservation policy.
+All amounts USD. Anchors are **live-measured** via account-level credit deltas (V6
+measurement records retained in the spike evidence set), not modeled. This document feeds
+the pilot/holdout drafts and the ledger reservation policy.
 
 ## Measured anchors
 
@@ -40,8 +41,9 @@ the currently admitted 10 tasks, holdout jg ≈ $1.92 / $5.76.
 - **Reservation policy (fail-closed, existing `SpendLedger` semantics):** before each agent run
   in a jg-enabled arm, reserve `6 × $0.048 = $0.288` (`rate_source` = `LIVE-MEASURED (V6
   2026-09-29; n=4; gateway /v1/credits)`). After the run, reconcile with
-  `observed jg events × $0.048`; periodic gateway-delta spot checks are the receipt trail.
-  Missing receipt or ambiguous rate ⇒ ledger stops (existing behavior).
+  `observed jg events × $0.048`; periodic account-level gateway-delta spot checks provide
+  bounded corroboration (no per-run receipts exist). Missing rate source or ambiguous rate
+  ⇒ ledger stops (existing behavior).
 - Codex usage is accounted in `codex_quota_tokens` per run (from the frozen trace contract);
   `codex_listprice_modeled_usd` is a separate modeled column and never claimed as observed.
 

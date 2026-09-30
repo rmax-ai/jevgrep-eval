@@ -56,8 +56,9 @@ generated here but must be validated on the target host before any claim.
 
 Results are task-clustered and paired. Timeouts count as failures. Partial traces
 suppress the dependent trace-derived metrics only (the record remains an audit
-artifact); missing receipts, env failures, workspace leaks, and failed isolation
-probes invalidate the affected primary measurement while retaining its audit trail.
+artifact); a missing or ambiguous cost basis, env failures, workspace leaks, and
+failed isolation probes invalidate the affected primary measurement while retaining
+its audit trail.
 This is a research instrument, not a production search recommendation.
 
 Review resolution, corpus admission details, and demo provenance are documented

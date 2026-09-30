@@ -12,7 +12,7 @@ diagnostic only and never correctness.
 
 Report claims must link run IDs, the analysis set, the digest chain, trace
 coverage, and pricing basis. Partial coverage, leak detection, post-snapshot
-mutation, network-probe failure, env failure, and missing receipts invalidate
+mutation, network-probe failure, env failure, and a missing or ambiguous cost basis invalidate
 the affected primary claim while retaining the run as an audit artifact.
 
 Threats include task sample size, one fixed model, repository and language

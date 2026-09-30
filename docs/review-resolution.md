@@ -44,3 +44,19 @@ failed `verify_run` ("empty retained bytes") although an empty patch is a valid 
 attempt under the protocol; the verifier now accepts zero-length retained bytes exactly
 when the component digest is the empty-bytes digest
 (`tests/test_envelope.py::test_empty_patch_component_verifies`).
+
+## Closeout integrity review — round 2 re-review (2026-09-30)
+
+Same independent lane, frozen revision `4ad67e6` (scope: verify the round-1 fold, items 1–7).
+Result: **six PASS; one FIX-FIRST** — item 3 (labeling): `docs/accounting.md` still described
+Jev cash as metered/receipt-reconciled while the report labels it modeled. Reviewer artifact:
+`reports/closeout-integrity-review-r2-20260930.md`. The wording is fixed across
+`docs/accounting.md`, `docs/spend-projection.md`, `docs/result-interpretation.md`, and the
+README invalidation list.
+
+The same delta also carries two non-review additions made while building the retrieval-only
+evidence: the pinned-jg 0.4.3 CLI adapter contract fix (`retrieval/jevgrep.py` — real text
+grammar + `--no-cache`, with captured-output fixtures; the previous `search --json --limit`
+shape does not exist in the pinned CLI) and the retrieval-only artifact/tool
+(`reports/retrieval-only-v1.json`, `tools/retrieval-only-pass.py`). A round-3 delta re-check
+covers this fix and these additions.

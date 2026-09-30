@@ -1,12 +1,16 @@
 # Accounting
 
 The ledger is the cap enforcement point. It reserves the worst-case bound
-before a metered call, reconciles an auditable receipt afterward, and stops on
-a missing receipt, ambiguous rate, or insufficient headroom.
+before a metered call, reconciles afterward against counted executed searches at
+the frozen measured per-search rate, and stops on a missing rate source,
+ambiguous rate, or insufficient headroom. Provider gateways expose account-level
+totals only; per-run dollar figures that cannot be receipt-reconciled are labeled
+**modeled** and never presented as metered receipts.
 
 ## Named columns
 
-- `jev_cash_usd`: metered provider cash.
+- `jev_cash_usd`: modeled provider cash (executed-search count × frozen measured
+  rate; per-run provider receipts unavailable — account-level totals only).
 - `codex_quota_tokens`: subscription resource use, not dollars.
 - `codex_listprice_modeled_usd`: a separate modeled comparison.
 - `local_compute_wall_s`: local elapsed compute.
