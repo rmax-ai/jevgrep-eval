@@ -72,3 +72,13 @@ malformed=0`; `malformed-list-item coverage=full malformed=0`). Artifact:
 (`Jevgrep: N relevant files.`), bullet-junk detection, unconditional `End file list.`
 requirement, declared-count consistency — plus five new regression tests (suite 119). Round 4
 re-checks the parser delta.
+
+## Closeout integrity review — round 4 delta re-check (2026-09-30)
+
+Same lane, frozen revision `4da3431` (scope: the round-3 parser fix, its regression tests, and the
+round-3 artifacts). Result: **PASS** (all four items) — the three round-3 probe classes now report
+`partial`; declared-count mismatch → partial; well-formed fixtures and zero-hit stay `full`; the
+offline adapter suite passes (17); delta containment verified (4 files, nothing unexplained);
+round-3 artifact + disposition accurate and sanitized. Artifact:
+`reports/closeout-integrity-review-r4-20260930.md`. **Unmerged-PR handoff authorized** with
+`4da3431` as the frozen revision; commits after `4da3431` are record-only review artifacts.
