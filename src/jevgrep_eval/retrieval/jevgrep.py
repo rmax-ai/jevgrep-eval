@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import subprocess
 import time
@@ -96,6 +97,39 @@ def _parse_row(
     )
 
 
+def _parse_jev_text(text: str) -> tuple[list[dict[str, Any]] | None, int, str]:
+    """Parse the pinned jg 0.4.3 text response.
+
+    Shape: ``Jevgrep: N relevant files.`` header, then an ordered list of
+    ``- "path" — …`` items terminated by ``End file list.``  List order is rank
+    order (V6-probed 2026-09-29: descending relevance, stable at K <= 10).
+    Returns ``(rows, malformed, summary)``; ``rows`` is ``None`` when the text
+    is not a jg response (JSON/JSONL fixture shapes are handled separately).
+    """
+    lines = text.splitlines()
+    if not lines or not lines[0].startswith("Jevgrep:"):
+        return None, 0, ""
+    rows: list[dict[str, Any]] = []
+    malformed = 0
+    ended = False
+    for line in lines[1:]:
+        if line.startswith("End file list."):
+            ended = True
+            break
+        if line.startswith('- "'):
+            match = _ITEM_LINE.match(line)
+            if match:
+                rows.append({"path": match.group("path"), "rank": len(rows) + 1})
+            else:
+                malformed += 1
+    if rows and not ended:
+        malformed += 1  # captured items but no explicit list terminator
+    return rows, malformed, lines[0].strip()
+
+
+_ITEM_LINE = re.compile(r'^- "(?P<path>.+?)" — ')
+
+
 def parse_output(
     stdout: bytes | str,
     *,
@@ -105,8 +139,9 @@ def parse_output(
     max_context_tokens: int = 400,
     no_cache: bool = True,
     truncated: bool = False,
+    partial: bool = False,
 ) -> ParsedJevgrep:
-    """Parse common JSON and JSONL response shapes without dropping failures."""
+    """Parse the pinned jg text contract, common JSON, or JSONL shapes."""
     if isinstance(stdout, bytes):
         text = stdout.decode("utf-8", errors="replace")
     else:
@@ -115,28 +150,34 @@ def parse_output(
     summary = ""
     excerpts: list[str] = []
     rows: list[Any] = []
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        for line in text.splitlines():
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError:
+    text_rows, text_malformed, text_summary = _parse_jev_text(text)
+    if text_rows is not None:
+        rows = list(text_rows)
+        malformed += text_malformed
+        summary = text_summary
+    else:
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            for line in text.splitlines():
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    malformed += 1
+            payload = None
+        if isinstance(payload, dict):
+            summary = str(payload.get("summary", payload.get("message", "")))
+            raw_excerpts = payload.get("excerpts", [])
+            if isinstance(raw_excerpts, list):
+                excerpts = [str(item) for item in raw_excerpts]
+            rows = payload.get("results", payload.get("ranked_files", payload.get("files", [])))
+            if not isinstance(rows, list):
+                rows = []
                 malformed += 1
-        payload = None
-    if isinstance(payload, dict):
-        summary = str(payload.get("summary", payload.get("message", "")))
-        raw_excerpts = payload.get("excerpts", [])
-        if isinstance(raw_excerpts, list):
-            excerpts = [str(item) for item in raw_excerpts]
-        rows = payload.get("results", payload.get("ranked_files", payload.get("files", [])))
-        if not isinstance(rows, list):
-            rows = []
+        elif isinstance(payload, list):
+            rows = payload
+        elif payload is not None:
             malformed += 1
-    elif isinstance(payload, list):
-        rows = payload
-    elif payload is not None:
-        malformed += 1
     parsed_rows: list[tuple[RetrievalHit, bool]] = []
     rank_data_malformed = False
     seen: set[str] = set()
@@ -190,7 +231,7 @@ def parse_output(
         malformed_output=malformed > 0 or truncated,
         malformed_count=malformed,
         no_cache=no_cache,
-        coverage="partial" if malformed or truncated else "full",
+        coverage="partial" if malformed or truncated or partial else "full",
         token_estimator="utf8-bytes-per-four",
         token_estimate=context,
         context_tokens=context,
@@ -199,6 +240,8 @@ def parse_output(
             if malformed
             else "output truncated at configured byte bound"
             if truncated
+            else "incomplete jg output (exit 2)"
+            if partial
             else None
         ),
         ranked_files=[hit.path for hit in hits],
@@ -274,10 +317,13 @@ class JevgrepAdapter:
     def argv(self, statement: str, *, k: int = 10, no_cache: bool = True) -> list[str]:
         if k <= 0:
             raise ValueError("k must be positive")
-        argv = [self.executable, "search"]
+        # Pinned jg 0.4.3 grammar (V6-probed): `jg [options] "question"` with the
+        # root as cwd.  The CLI has no --json/--limit/search subcommand; the
+        # top-N list is bounded client-side by k during parsing.
+        argv = [self.executable]
         if no_cache:
             argv.append("--no-cache")
-        argv.extend(["--json", "--limit", str(k), statement])
+        argv.append(statement)
         return argv
 
     def query(
@@ -305,7 +351,11 @@ class JevgrepAdapter:
             )
         except OSError as exc:
             raise JevgrepError(str(exc)) from exc
-        if returncode:
+        # jg exit codes: 0 complete, 1 failed, 2 incomplete, 130 interrupted.
+        # Incomplete output is parsed and flagged as partial coverage instead of
+        # being discarded; any other non-zero status is a hard failure.
+        partial = returncode == 2 and bool(stdout)
+        if returncode and not partial:
             raise JevgrepError(stderr.decode("utf-8", errors="replace").strip() or f"exit {returncode}")
         parsed = parse_output(
             stdout,
@@ -314,6 +364,7 @@ class JevgrepAdapter:
             k=k,
             no_cache=no_cache,
             truncated=truncated,
+            partial=partial,
         )
         return parsed.result.model_copy(
             update={"latency_ms": (time.perf_counter() - started) * 1000}
