@@ -70,6 +70,50 @@ def test_envelope_fails_closed_for_missing_identity_evidence():
     assert "missing retained bytes: task_digest" in verification.errors
 
 
+def test_empty_patch_component_verifies():
+    envelope = create_envelope(
+        run_id="run",
+        task_id="task",
+        condition_id="a0",
+        task={"id": "task"},
+        fixture_manifest={"files": []},
+        statement="statement",
+        prompt_common="common",
+        prompt_fragment="fragment",
+        skill_bytes=b"skill",
+        invocation={"argv": ["mock"]},
+        pre_workspace={"files": []},
+    )
+    envelope = add_component(envelope, "post_workspace_digest", {"files": []})
+    envelope = add_component(envelope, "patch_digest", b"")
+    verification = verify_envelope(envelope)
+    assert verification.valid, verification.errors
+
+
+def test_nonempty_patch_digest_with_empty_retained_bytes_fails():
+    envelope = create_envelope(
+        run_id="run",
+        task_id="task",
+        condition_id="a0",
+        task={"id": "task"},
+        fixture_manifest={"files": []},
+        statement="statement",
+        prompt_common="common",
+        prompt_fragment="fragment",
+        skill_bytes=b"skill",
+        invocation={"argv": ["mock"]},
+        pre_workspace={"files": []},
+    )
+    envelope = add_component(envelope, "post_workspace_digest", {"files": []})
+    envelope = add_component(envelope, "patch_digest", b"diff --git a/x b/x\n")
+    retained = dict(envelope.retained_bytes)
+    retained["patch_digest"] = ""
+    tampered = envelope.model_copy(update={"retained_bytes": retained})
+    verification = verify_envelope(tampered)
+    assert not verification.valid
+    assert "empty retained bytes: patch_digest" in verification.errors
+
+
 def test_envelope_fails_closed_for_malformed_identity_evidence():
     envelope = create_envelope(
         run_id="run",

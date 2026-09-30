@@ -22,6 +22,7 @@ from .util import (
     digest,
     digest_bytes,
     now,
+    sha256_file,
     write_canonical_json,
 )
 
@@ -40,6 +41,11 @@ CHAIN_ORDER = (
     "evaluation_result_digest",
 )
 REQUIRED_CHAIN_COMPONENTS = frozenset(CHAIN_ORDER[:8])
+
+# On-disk sidecars that must bind byte-exactly to their envelope component.
+# (Costs are bound by the published evidence-bundle manifest; the envelope has
+# no cost component in the frozen v1 contract.)
+RETAINED_BINDINGS = (("evaluation-result.json", "evaluation_result_digest"),)
 _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -310,11 +316,17 @@ def verify_envelope(
         f"missing retained bytes: {name}" for name in sorted(missing_retained)
     )
     # An empty skill bundle is a valid, explicit no-skills condition.  All
-    # other retained components must carry non-empty canonical evidence.
+    # other retained components must carry non-empty canonical evidence --
+    # except components whose digest is the empty-bytes digest (e.g. an empty
+    # patch, which the protocol scores as an attempt); their retained bytes
+    # are legitimately zero-length and must stay self-consistent.
+    empty_digest = digest_bytes(b"")
     empty_retained = {
         name
         for name, value in retained_values.items()
-        if not value and name != "skill_bytes_digest"
+        if not value
+        and name != "skill_bytes_digest"
+        and getattr(envelope, name, "") != empty_digest
     }
     errors.extend(f"empty retained bytes: {name}" for name in sorted(empty_retained))
     for name, identity_key, expected_identity in (
@@ -408,6 +420,15 @@ def verify_run(
                 return Verification(False, ("task id mismatch between record and envelope",))
             if record.condition_id != envelope.condition_id:
                 return Verification(False, ("condition id mismatch between record and envelope",))
+        for name, field in RETAINED_BINDINGS:
+            expected = getattr(envelope, field, "")
+            if not expected:
+                continue
+            artifact = path / name
+            if not artifact.is_file():
+                return Verification(False, (f"missing retained artifact: {name}",))
+            if sha256_file(artifact) != expected:
+                return Verification(False, (f"retained artifact digest mismatch: {name}",))
     if not envelope.task_id:
         return Verification(False, ("envelope has no task identity",))
     if not envelope.condition_id or envelope.condition_id != envelope.arm:

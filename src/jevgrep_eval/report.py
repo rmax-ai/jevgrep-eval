@@ -26,13 +26,17 @@ import yaml
 
 from .stats import clustered_bootstrap, exact_mcnemar
 from .traces import count_search_invocations
-from .util import canonical_json, digest
+from .util import canonical_json, digest, sha256_file
 
 LIVE_REPORT_VERSION = "pilot-report-v1"
 PRIMARY_ARMS = ("a0", "a1", "a3")
 PRIMARY_COMPARISONS = (("a1", "a0"), ("a3", "a0"))
 BOOTSTRAP_REPS = 10_000
 BOOTSTRAP_SEED = 0  # pre-registered; do not change without a new protocol ID
+# Frozen measured Jev rate (V6 live credit-delta, n=4, 2026-09-29). The provider
+# gateway exposes account-level totals only, so per-run cash is modeled from
+# executed-search counts at this rate; the report labels it accordingly.
+JEV_RATE_USD_PER_SEARCH = "0.048"
 ELIGIBLE_STATUSES = ("completed", "timeout")
 INVALIDATING_FLAGS = ("pre-snapshot-mutated",)
 SIMULATED_FLAG = "simulated-fixture"
@@ -156,6 +160,26 @@ def _cell(run_dir: Path, record: dict[str, Any]) -> dict[str, Any]:
     jev_searches: int | None = None
     if arm == "a1" and coverage == "full":
         jev_searches = count_search_invocations(record.get("events") or [])
+    envelope = _load_optional_json(run_dir / "run-envelope.json")
+    evaluation_digest_checked = False
+    evaluation_digest_match: bool | None = None
+    if envelope is not None:
+        expected = str(envelope.get("evaluation_result_digest") or "")
+        if expected:
+            evaluation_digest_checked = True
+            artifact = run_dir / "evaluation-result.json"
+            if not artifact.is_file():
+                evaluation_digest_match = False
+                invalid_reasons.append("missing-evaluation-artifact")
+                notes.append("envelope references an evaluation artifact that is absent")
+            else:
+                evaluation_digest_match = sha256_file(artifact) == expected
+                if not evaluation_digest_match:
+                    invalid_reasons.append("evaluation-digest-mismatch")
+                    notes.append(
+                        "evaluation-result.json does not match the envelope digest "
+                        "(artifact integrity failure)"
+                    )
     return {
         "run_id": run_id,
         "task_id": task_id,
@@ -173,6 +197,8 @@ def _cell(run_dir: Path, record: dict[str, Any]) -> dict[str, Any]:
         "effective_success": effective_success,
         "analysis_eligible": not invalid_reasons,
         "invalid_reasons": invalid_reasons,
+        "evaluation_digest_checked": evaluation_digest_checked,
+        "evaluation_digest_match": evaluation_digest_match,
         "jev_executed_searches": jev_searches,
         "costs": _cost_bucket(costs),
         "notes": notes,
@@ -203,13 +229,19 @@ def _comparison(
             continue
         left_values = [int(cell["effective_success"]) for _, cell, _ in common]
         right_values = [int(other["effective_success"]) for _, _, other in common]
-        pairs.append((task_id, left_values, right_values))
+        ineligible = sum(
+            1
+            for _, cell, other in common
+            if cell.get("ineligible_counted") or other.get("ineligible_counted")
+        )
+        pairs.append((task_id, left_values, right_values, ineligible))
     if not pairs:
         return {
             "left": left,
             "right": right,
             "tasks": [],
             "n_tasks": 0,
+            "ineligible_counted": 0,
             "estimate": None,
             "ci_low": None,
             "ci_high": None,
@@ -220,19 +252,20 @@ def _comparison(
         }
     clusters = [
         [float(left_value - right_value) for left_value, right_value in zip(left_values, right_values)]
-        for _, left_values, right_values in pairs
+        for _, left_values, right_values, _ in pairs
     ]
     interval = clustered_bootstrap(clusters, reps=BOOTSTRAP_REPS, seed=BOOTSTRAP_SEED)
-    first_left = [left_values[0] for _, left_values, _ in pairs]
-    first_right = [right_values[0] for _, _, right_values in pairs]
+    first_left = [left_values[0] for _, left_values, _, _ in pairs]
+    first_right = [right_values[0] for _, _, right_values, _ in pairs]
     mcnemar = exact_mcnemar(first_left, first_right)
     return {
         "left": left,
         "right": right,
-        "tasks": [task_id for task_id, _, _ in pairs],
+        "tasks": [task_id for task_id, _, _, _ in pairs],
         "n_tasks": len(pairs),
-        "left_successes": sum(sum(values) for _, values, _ in pairs),
-        "right_successes": sum(sum(values) for _, _, values in pairs),
+        "ineligible_counted": sum(item[3] for item in pairs),
+        "left_successes": sum(sum(values) for _, values, _, _ in pairs),
+        "right_successes": sum(sum(values) for _, _, values, _ in pairs),
         "estimate": interval.estimate,
         "ci_low": interval.low,
         "ci_high": interval.high,
@@ -298,7 +331,11 @@ def build_live_report(
         record = _load_run(record_path)
         run_id = str(record.get("run_id", record_path.parent.name))
         flags = [str(flag) for flag in (record.get("flags") or [])]
-        if SIMULATED_FLAG in flags:
+        if (
+            SIMULATED_FLAG in flags
+            or "mock" in run_id.lower()
+            or bool(record.get("simulated"))
+        ):
             raise ReportRefusal(f"live builder refuses simulated run: {run_id}")
         task_id = str(record.get("task_id", ""))
         arm = str(record.get("condition_id") or record.get("arm") or "unknown")
@@ -325,16 +362,34 @@ def build_live_report(
         if all((task_id, arm) in by_key for arm in PRIMARY_ARMS)
     ]
 
-    def comparisons(*, require_arms: tuple[str, ...] | None) -> dict[str, Any]:
+    # Sensitivity = every assigned cell on admitted tasks; cells invalidated by
+    # protocol rules remain in the denominator and count as unsuccessful, with
+    # the count exposed as `ineligible_counted` (failure/missingness explicit).
+    assigned_key: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for cell in cells:
+        shaped = (
+            cell
+            if cell["analysis_eligible"]
+            else {**cell, "effective_success": False, "ineligible_counted": True}
+        )
+        assigned_key.setdefault((cell["task_id"], cell["arm"]), []).append(shaped)
+    assigned_tasks = sorted({cell["task_id"] for cell in cells})
+
+    def comparisons(
+        source: dict[tuple[str, str], list[dict[str, Any]]],
+        tasks: list[str],
+        *,
+        require_arms: tuple[str, ...] | None,
+    ) -> dict[str, Any]:
         return {
             f"{left}_minus_{right}": _comparison(
-                by_key, task_ids, left, right, require_arms=require_arms
+                source, tasks, left, right, require_arms=require_arms
             )
             for left, right in PRIMARY_COMPARISONS
         }
 
-    primary = comparisons(require_arms=PRIMARY_ARMS)
-    sensitivity = comparisons(require_arms=None)
+    primary = comparisons(by_key, task_ids, require_arms=PRIMARY_ARMS)
+    sensitivity = comparisons(assigned_key, assigned_tasks, require_arms=None)
 
     ledger: dict[str, Any] | None = None
     resolved_ledger = ledger_path if ledger_path is not None else runs_dir / "ledger.json"
@@ -354,11 +409,17 @@ def build_live_report(
         }
 
     totals = _run_totals(cells)
+    integrity_failures = sorted(
+        cell["run_id"] for cell in cells if cell.get("evaluation_digest_match") is False
+    )
     claims = [
         {
             "claim": "paired A0/A1/A3 pilot executed on the frozen dev corpus",
             "status": "supported" if complete_triplets else "withheld",
-            "evidence": {"complete_triplet_tasks": complete_triplets},
+            "evidence": {
+                "complete_triplet_tasks": complete_triplets,
+                "protocol_basis": "experiments/pilot.yaml (frozen; corpus/selection/pricing digests filled 2026-09-30)",
+            },
         },
         {
             "claim": "primary paired comparisons computed (A1-A0, A3-A0)",
@@ -370,19 +431,44 @@ def build_live_report(
             "evidence": {key: item["n_tasks"] for key, item in primary.items()},
         },
         {
-            "claim": "Jev provider cash included in the cost columns",
+            "claim": (
+                "Jev provider spend is included in the cost columns "
+                "(modeled from executed-search counts at the frozen measured rate)"
+            ),
             "status": "supported" if totals["runs_with_costs"] else "withheld",
-            "evidence": {"jev_cash_usd_total": totals["jev_cash_usd_total"]},
+            "evidence": {
+                "jev_cash_usd_total": totals["jev_cash_usd_total"],
+                "rate_usd_per_search": JEV_RATE_USD_PER_SEARCH,
+                "receipts": "per-run provider receipts unavailable (account-level totals only)",
+            },
+        },
+        {
+            "claim": "retained evaluation artifacts bind to their run envelopes (sha256)",
+            "status": "withheld" if integrity_failures else "supported",
+            "evidence": {
+                "checked": sum(1 for cell in cells if cell.get("evaluation_digest_checked")),
+                "mismatches": integrity_failures,
+            },
         },
         {
             "claim": "no simulated outputs among analysis inputs",
             "status": "supported",
-            "evidence": {"enforced_by": "live builder refuses simulated-fixture runs"},
+            "evidence": {
+                "enforced_by": "simulated-fixture flag + run-id/record marker check (live builder refuses)"
+            },
         },
         {
             "claim": "retrieval-only metrics",
             "status": "withheld",
             "reason": "retrieval-only pass is not part of the pilot execution set",
+        },
+        {
+            "claim": "per-run isolation and network probe artifacts",
+            "status": "withheld",
+            "reason": (
+                "pilot emitted recipe-level validation (V4/V4b) only; per-run probe "
+                "artifacts are required before any holdout claim"
+            ),
         },
     ]
 
@@ -401,13 +487,30 @@ def build_live_report(
         "exclusions": exclusions,
         "analysis_sets": {
             "primary": {"tasks": complete_triplets, "comparisons": primary},
-            "sensitivity_all_assigned": {"tasks": task_ids, "comparisons": sensitivity},
+            "sensitivity_all_assigned": {"tasks": assigned_tasks, "comparisons": sensitivity},
         },
-        "spend": {"ledger": ledger, "run_totals": totals, "ledger_path_provided": ledger is not None},
+        "spend": {
+            "ledger": ledger,
+            "run_totals": totals,
+            "pricing_basis": {
+                "jev_rate_usd_per_search": JEV_RATE_USD_PER_SEARCH,
+                "jev_rate_provenance": "V6 live credit-delta measurement (n=4, 2026-09-29)",
+                "receipts": "per-run receipts unavailable; account-level totals only (modeled cash, labeled)",
+            },
+            "ledger_path_provided": ledger is not None,
+        },
+        "artifact_integrity": {
+            "evaluation_binding_checked": sum(
+                1 for cell in cells if cell.get("evaluation_digest_checked")
+            ),
+            "evaluation_binding_failures": integrity_failures,
+        },
         "claim_map": claims,
         "limitations": [
             "pilot is instrumentation-only (single repetition; no efficacy claims)",
             "task-clustered paired analysis, exact McNemar on first complete repetition",
+            "Jev cash is modeled from executed-search counts at the frozen measured rate; per-run receipts are not exposed by the provider gateway",
+            "per-run isolation/network probe artifacts were not emitted in the pilot (recipe-level validation only); holdout runs must emit them",
         ],
         "report_digest": "",
     }

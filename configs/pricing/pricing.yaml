@@ -3,11 +3,11 @@ cap_usd: "50"
 entries:
   - component: jev
     effective_date: "2026-09-29"
-    source: "Stage 0.5 provider receipt; pending live verification"
-    retrieved_at: "2026-09-29T00:00:00Z"
+    source: "V6 live credit-delta measurement (gateway /v1/credits total_used, n=4, 2026-09-29); account-level totals only — per-run receipts unavailable"
+    retrieved_at: "2026-09-29T17:45:00Z"
     model: ""
     service_tier: ""
-    notes: "Placeholder provenance only; no live cost claim is made in W1a."
+    notes: "Modeled per-search rate USD 0.048/search (reports/pilot-v1.json pricing_basis; docs/accounting.md)."
     input_rate_usd_per_million: "0"
   - component: codex
     effective_date: "2026-09-29"

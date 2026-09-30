@@ -1,7 +1,8 @@
-# dq#117 pilot experiment — DRAFT (finalize digests at corpus freeze)
+# dq#117 pilot experiment — FROZEN 2026-09-30 (closeout: digests completed; the
+# hashed artifacts are unchanged since the corpus freeze for the pilot runs).
 experiment: pilot
 protocol_id: v1
-status: draft
+status: frozen
 conditions: [a0, a1, a3]
 tasks:
   source: corpus/dev
@@ -22,7 +23,7 @@ budget:
   stage: stage_2_pilot
   jg_rate_usd_per_search: "0.048"   # LIVE-MEASURED (V6 ; gateway /v1/credits delta)
   jg_reserved_searches_per_run: 6
-digests:
-  corpus_manifest: ""        # fill at freeze
-  selection_log: ""
-  pricing: ""                # configs/pricing/pricing.yaml snapshot
+digests:                    # sha256, filled at freeze (2026-09-30)
+  corpus_manifest: "4a6cb396ebc9f7fd4733721fea3f435762e06cc0c423ed501422bbe0b8c4f9ec"  # corpus/manifest.json
+  selection_log: "b0fe16639f2ae572a403f444fb3e8b2ff52755b05f92fa99a8c86a7493713608"    # corpus/selection-log.md
+  pricing: "242d7cad6051a03ad435404e4dde24c909c60f6abae61fdeb5ca1950756b9010"           # configs/pricing/pricing.yaml

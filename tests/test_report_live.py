@@ -197,3 +197,99 @@ def test_cli_builds_live_report_with_ledger(tmp_path: Path) -> None:
     report = json.loads(out.read_text(encoding="utf-8"))
     assert report["spend"]["ledger"]["committed_cash_usd"] == 0.768
     assert report["spend"]["run_totals"]["runs_with_costs"] == 0
+
+
+def _write_envelope(runs: Path, task: str, arm: str, *, rep: int = 0, evaluation_digest: str = "") -> None:
+    run_id = f"{task}-{arm}-r{rep}"
+    envelope = {
+        "run_id": run_id,
+        "task_id": task,
+        "condition_id": arm,
+        "arm": arm,
+        "evaluation_result_digest": evaluation_digest,
+    }
+    (runs / run_id / "run-envelope.json").write_text(json.dumps(envelope), encoding="utf-8")
+
+
+def test_live_report_binds_evaluation_to_envelope(tmp_path: Path) -> None:
+    import hashlib
+
+    runs = tmp_path / "runs"
+    corpus = tmp_path / "corpus"
+    _write_task(corpus, "t1")
+    run_dir = _write_run(runs, "t1", "a0", success=True)
+    digest = hashlib.sha256((run_dir / "evaluation-result.json").read_bytes()).hexdigest()
+    _write_envelope(runs, "t1", "a0", evaluation_digest=digest)
+
+    report = _build(runs, corpus, tmp_path)
+    cell = report["runs"][0]
+    assert cell["evaluation_digest_checked"] is True
+    assert cell["evaluation_digest_match"] is True
+    assert cell["analysis_eligible"] is True
+    assert report["artifact_integrity"]["evaluation_binding_failures"] == []
+
+    (run_dir / "evaluation-result.json").write_text(
+        json.dumps(
+            {
+                "run_id": "t1-a0-r0",
+                "task_success": False,
+                "failure_class": "incorrect_implementation",
+                "replay_equal": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    tampered = _build(runs, corpus, tmp_path)
+    cell2 = tampered["runs"][0]
+    assert cell2["evaluation_digest_match"] is False
+    assert "evaluation-digest-mismatch" in cell2["invalid_reasons"]
+    assert cell2["analysis_eligible"] is False
+    assert tampered["artifact_integrity"]["evaluation_binding_failures"] == ["t1-a0-r0"]
+    statuses = {claim["claim"]: claim["status"] for claim in tampered["claim_map"]}
+    assert statuses["retained evaluation artifacts bind to their run envelopes (sha256)"] == "withheld"
+
+
+def test_live_report_refuses_mock_run_ids(tmp_path: Path) -> None:
+    runs = tmp_path / "runs"
+    corpus = tmp_path / "corpus"
+    _write_task(corpus, "t1")
+    _write_run(runs, "t1", "a0", success=True)
+    (runs / "t1-a0-r0").rename(runs / "mock-t1-a0-r0")
+    (runs / "mock-t1-a0-r0" / "run-record.json").write_text(
+        json.dumps(
+            {
+                "run_id": "mock-t1-a0-r0",
+                "task_id": "t1",
+                "condition_id": "a0",
+                "repetition": 0,
+                "terminal_status": "completed",
+                "flags": [],
+                "trace_coverage": "full",
+                "protocol_id": "v1",
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ReportRefusal):
+        build_live_report(runs, tmp_path / "report.json", corpus_dir=corpus)
+
+
+def test_live_report_sensitivity_counts_failed_assignments(tmp_path: Path) -> None:
+    runs = tmp_path / "runs"
+    corpus = tmp_path / "corpus"
+    _write_task(corpus, "t1")
+    _write_run(runs, "t1", "a0", success=True)
+    _write_run(runs, "t1", "a1", status="env_failure", success=True)  # leftover passing eval
+    _write_run(runs, "t1", "a3", success=True)
+
+    report = _build(runs, corpus, tmp_path)
+    assert report["analysis_sets"]["primary"]["tasks"] == []
+    sensitivity = report["analysis_sets"]["sensitivity_all_assigned"]
+    assert sensitivity["tasks"] == ["t1"]
+    a1 = sensitivity["comparisons"]["a1_minus_a0"]
+    assert a1["n_tasks"] == 1
+    assert a1["ineligible_counted"] == 1
+    assert a1["estimate"] == -1.0
+    a1_cell = next(cell for cell in report["runs"] if cell["arm"] == "a1")
+    assert a1_cell["analysis_eligible"] is False
+    assert "terminal_status:env_failure" in a1_cell["invalid_reasons"]
