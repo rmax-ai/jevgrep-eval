@@ -60,3 +60,15 @@ grammar + `--no-cache`, with captured-output fixtures; the previous `search --js
 shape does not exist in the pinned CLI) and the retrieval-only artifact/tool
 (`reports/retrieval-only-v1.json`, `tools/retrieval-only-pass.py`). A round-3 delta re-check
 covers this fix and these additions.
+
+## Closeout integrity review — round 3 delta re-check (2026-09-30)
+
+Same lane, frozen revision `5e4f7c3` (scope: the round-2 fold + retrieval delta). Result: items
+1, 2, 4, 5 PASS; **item 3 FIX-FIRST** — the pinned-jg text parser accepted malformed
+header / bullet-shaped list junk / missing-terminator responses as full coverage (offline
+probes: `invalid-header coverage=full malformed=0`; `empty-missing-terminator coverage=full
+malformed=0`; `malformed-list-item coverage=full malformed=0`). Artifact:
+`reports/closeout-integrity-review-r3-20260930.md`. Fixed in the same push: strict header regex
+(`Jevgrep: N relevant files.`), bullet-junk detection, unconditional `End file list.`
+requirement, declared-count consistency — plus five new regression tests (suite 119). Round 4
+re-checks the parser delta.
