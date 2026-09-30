@@ -13,7 +13,7 @@ from .costing import SpendLedger, load_pricing
 from .envelope import verify_run
 from .isolation import bwrap_argv, probe_artifacts
 from .materialize import materialize_repo, snapshot
-from .report import ReportRefusal, build_report
+from .report import ReportRefusal, build_live_report, build_report
 from .retrieval.bm25 import BM25Index
 from .retrieval.jevgrep import JevgrepAdapter, MockJevgrepAdapter
 from .stats import clustered_bootstrap
@@ -94,6 +94,8 @@ def _parser() -> argparse.ArgumentParser:
     report_build.add_argument("--runs", required=True, type=Path)
     report_build.add_argument("--demo", action="store_true")
     report_build.add_argument("--out", type=Path)
+    report_build.add_argument("--corpus", type=Path, default=Path("corpus"))
+    report_build.add_argument("--ledger", type=Path)
 
     probes = subparsers.add_parser("probes")
     probes.add_argument("--tier", choices=("A", "B"), default="A")
@@ -210,12 +212,16 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write("ok\n")
             return OK
         if args.command == "report":
-            if not args.demo:
-                return POLICY
             if not args.runs.is_dir():
                 return MISSING
-            destination = args.out or args.runs / "reports" / "demo" / "simulated-fixture.json"
-            build_report(args.runs, destination, demo=True)
+            if args.demo:
+                destination = args.out or args.runs / "reports" / "demo" / "simulated-fixture.json"
+                build_report(args.runs, destination, demo=True)
+                return OK
+            destination = args.out or args.runs / "live-report.json"
+            build_live_report(
+                args.runs, destination, corpus_dir=args.corpus, ledger_path=args.ledger
+            )
             return OK
         if args.command == "probes":
             payload = {
