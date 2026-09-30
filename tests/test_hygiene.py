@@ -10,7 +10,7 @@ def test_mock_path_has_no_network_dependency(tmp_path: Path):
 
 def test_public_artifacts_do_not_contain_private_markers():
     root = Path(__file__).parents[1]
-    for path in [root / "README.md", root / "docs", root / "configs", root / "reports"]:
+    for path in [root / "README.md", root / "docs", root / "configs", root / "reports", root / "tools"]:
         paths = [path] if path.is_file() else sorted(path.rglob("*"))
         for candidate in paths:
             if candidate.is_file():
