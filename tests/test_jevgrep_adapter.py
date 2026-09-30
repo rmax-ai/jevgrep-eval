@@ -119,7 +119,7 @@ def test_parse_text_malformed_item_flags_partial(tmp_path: Path):
     text = 'Jevgrep: 2 relevant files.\n- "ok.py" — helper\n- "broken item\nEnd file list.\n'
     parsed = parse_output(text, root=tmp_path)
     assert parsed.ranked_files == ("ok.py",)
-    assert parsed.result.malformed_count == 1
+    assert parsed.result.malformed_count == 2  # broken item + declared-count mismatch
     assert parsed.result.coverage == "partial"
 
 
@@ -140,3 +140,38 @@ def test_query_exit_2_is_partial_not_a_failure(tmp_path: Path):
     result = adapter.query("bug", tmp_path)
     assert result.coverage == "partial"
     assert "exit 2" in (result.error or "")
+
+
+def test_parse_text_invalid_header_flags_partial(tmp_path: Path):
+    text = 'Jevgrep: five relevant files.\n- "ok.py" — helper\nEnd file list.\n'
+    parsed = parse_output(text, root=tmp_path)
+    assert parsed.ranked_files == ("ok.py",)
+    assert parsed.result.coverage == "partial"
+
+
+def test_parse_text_empty_missing_terminator_flags_partial(tmp_path: Path):
+    text = "Jevgrep: 5 relevant files.\nSymbols use name@start-end.\n"
+    parsed = parse_output(text, root=tmp_path)
+    assert parsed.ranked_files == ()
+    assert parsed.result.coverage == "partial"
+
+
+def test_parse_text_bullet_shaped_junk_flags_partial(tmp_path: Path):
+    text = 'Jevgrep: 2 relevant files.\n* "a.py" — helper\n- "b.py" — helper\nEnd file list.\n'
+    parsed = parse_output(text, root=tmp_path)
+    assert parsed.ranked_files == ("b.py",)
+    assert parsed.result.coverage == "partial"
+
+
+def test_parse_text_declared_count_mismatch_flags_partial(tmp_path: Path):
+    text = 'Jevgrep: 3 relevant files.\n- "a.py" — x\n- "b.py" — y\nEnd file list.\n'
+    parsed = parse_output(text, root=tmp_path)
+    assert parsed.ranked_files == ("a.py", "b.py")
+    assert parsed.result.coverage == "partial"
+
+
+def test_parse_text_wellformed_zero_hit_stays_full(tmp_path: Path):
+    text = "Jevgrep: 0 relevant files.\nEnd file list.\n"
+    parsed = parse_output(text, root=tmp_path)
+    assert parsed.ranked_files == ()
+    assert parsed.result.coverage == "full"

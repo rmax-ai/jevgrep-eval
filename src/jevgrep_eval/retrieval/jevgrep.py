@@ -100,17 +100,24 @@ def _parse_row(
 def _parse_jev_text(text: str) -> tuple[list[dict[str, Any]] | None, int, str]:
     """Parse the pinned jg 0.4.3 text response.
 
-    Shape: ``Jevgrep: N relevant files.`` header, then an ordered list of
-    ``- "path" — …`` items terminated by ``End file list.``  List order is rank
-    order (V6-probed 2026-09-29: descending relevance, stable at K <= 10).
+    Strict contract (review-hardened): literal ``Jevgrep: N relevant files.``
+    header, an ordered list of ``- "path" — …`` items, an ``End file list.``
+    terminator, and the parsed item count must equal the declared count.  List
+    order is rank order (V6-probed 2026-09-29: descending relevance, stable at
+    K <= 10).  Any malformed header, bullet-shaped non-item, count mismatch, or
+    missing terminator counts as ``malformed`` so the caller reports partial
+    coverage instead of silently dropping entries.
     Returns ``(rows, malformed, summary)``; ``rows`` is ``None`` when the text
     is not a jg response (JSON/JSONL fixture shapes are handled separately).
     """
     lines = text.splitlines()
     if not lines or not lines[0].startswith("Jevgrep:"):
         return None, 0, ""
+    header = lines[0].strip()
+    header_match = _HEADER_LINE.match(header)
+    declared = int(header_match.group("count")) if header_match else None
     rows: list[dict[str, Any]] = []
-    malformed = 0
+    malformed = 0 if header_match else 1  # non-pinned header shape
     ended = False
     for line in lines[1:]:
         if line.startswith("End file list."):
@@ -122,12 +129,17 @@ def _parse_jev_text(text: str) -> tuple[list[dict[str, Any]] | None, int, str]:
                 rows.append({"path": match.group("path"), "rank": len(rows) + 1})
             else:
                 malformed += 1
-    if rows and not ended:
-        malformed += 1  # captured items but no explicit list terminator
-    return rows, malformed, lines[0].strip()
+        elif line.lstrip().startswith(("- ", "* ")):
+            malformed += 1  # bullet-shaped line that is not a pinned item
+    if not ended:
+        malformed += 1  # no explicit list terminator
+    if declared is not None and len(rows) != declared:
+        malformed += 1  # parsed list truncated/extended vs declared count
+    return rows, malformed, header
 
 
 _ITEM_LINE = re.compile(r'^- "(?P<path>.+?)" — ')
+_HEADER_LINE = re.compile(r"^Jevgrep: (?P<count>\d+) relevant files\.$")
 
 
 def parse_output(
