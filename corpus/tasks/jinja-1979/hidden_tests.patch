@@ -1,0 +1,13 @@
+diff --git a/tests/test_loader.py b/tests/test_loader.py
+index 3e64f62372b541819d7617185c6c14575f8e2a28..e0cff6720fd27e8eb9906dccb36c80b74bd49f58 100644
+--- a/tests/test_loader.py
++++ b/tests/test_loader.py
+@@ -363,7 +363,7 @@ def test_package_zip_source(package_zip_loader, template, expect):
+ 
+ 
+ @pytest.mark.xfail(
+-    sys.implementation.name == "pypy" or sys.version_info > (3, 13),
++    sys.implementation.name == "pypy",
+     reason="zipimporter doesn't have a '_files' attribute",
+     raises=TypeError,
+ )

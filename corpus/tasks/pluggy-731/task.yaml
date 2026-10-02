@@ -1,0 +1,50 @@
+task_id: pluggy-731
+repo_id: pytest-dev__pluggy
+base_sha: 87e45202858dbb725c2ea7d6472a11c1a2624518
+gold_sha: 080b7d31074f773540c9e66f9d4c00a47159a35f
+fix_ref: https://github.com/pytest-dev/pluggy/pull/731
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Reject PluginManager.register(None).
+  Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- src/pluggy/_manager.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/pluggy-731/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- testing/test_helpers.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pytest-dev__pluggy/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/pluggy-731/gold.patch
+  sha256: 6e0542801844c5286a5475e5ec4c2c02b9ecd2fad35c6024d26516500054b450
+  role: evaluator-gold-patch
+- path: tasks/pluggy-731/hidden_tests.patch
+  sha256: 5c8ffb5981f9041afef0e11962954f344d11c9d7bfa9363db1f9cdbdb4f7466d
+  role: evaluator-hidden-tests
+- path: tasks/pluggy-731/admission.json
+  sha256: 1013dc2207a93e331648c2410ebf15002a7c6d5db3af669d0dd4c735bc65cc70
+  role: admission-evidence
+- path: tasks/pluggy-731/sanitization.md
+  sha256: 6f39bc4855596dafd3bd5c30659709a8335efb20c5fb6bd2c28ec96faa841174
+  role: sanitization-review
+- path: tasks/pluggy-731/gold-evidence.json
+  sha256: 10388498eb6efdbfbd4050ba3924e0881d07d2492708113cae53bc48fd1457c1
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- testing/test_pluginmanager.py

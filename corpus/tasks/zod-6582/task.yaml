@@ -1,0 +1,49 @@
+task_id: zod-6582
+repo_id: colinhacks__zod
+base_sha: dd9c36fa2ddcee79f71d19f9635586c7b65ead86
+gold_sha: b12aa523e7e2617c4296cccf9b24d6558ed23e95
+fix_ref: https://github.com/colinhacks/zod/pull/6582
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Preserve unique tags with
+  defaulted discriminators. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- packages/zod/src/v4/core/compile.ts
+- packages/zod/src/v4/core/schemas.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zod-6582/hidden_tests.patch
+test_runner: vitest
+test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/discriminated-unions.test.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/colinhacks__zod/pnpm-store
+expected_test_seconds: 60.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/zod-6582/gold.patch
+  sha256: 6039677ae2fc9e0960aa4e68607e661cf51d84622bc64a9def81d72015bf23fe
+  role: evaluator-gold-patch
+- path: tasks/zod-6582/hidden_tests.patch
+  sha256: 26157cb9e69b53aa99f56b13506c91dc53bd0fbea0419a15bcba5a7d1bdde599
+  role: evaluator-hidden-tests
+- path: tasks/zod-6582/admission.json
+  sha256: 5e1444d2363a158b5800e10c89ef09c4b781586600581b532f57567813777af7
+  role: admission-evidence
+- path: tasks/zod-6582/sanitization.md
+  sha256: 4509095b9b2cdacf7300ec243870c24659821c4da0f1ad07f8af20088cc693b7
+  role: sanitization-review
+- path: tasks/zod-6582/gold-evidence.json
+  sha256: 3293442023ec9585a9d20c7d7b8aadc3f3db32493908abc5f7345df277c20d1a
+  role: evaluator-gold-evidence
+hidden_test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/discriminated-unions.test.ts

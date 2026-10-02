@@ -1,0 +1,124 @@
+Jevgrep: 3 relevant files.
+Symbols use name@start-end. Roles are estimates; locations-only files remain reading leads.
+AGENTS.md lookup (root and returned-file ancestors): none found.
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_context.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_utils.py'
+- "tests/test_context.py" — test, fixture; source below
+- "tests/test_utils.py" — test, fixture; source below
+- "src/click/_utils.py" — relevant; role uncertain; locations only
+End file list. Declaration locations follow source.
+
+Source block "tests/test_context.py" lines 159-177:
+```
+    runner.invoke(cli, [], catch_exceptions=False)
+
+
+def test_make_pass_meta_decorator(runner):
+    @click.group()
+    @click.pass_context
+    def cli(ctx):
+        ctx.meta["value"] = "good"
+
+    @cli.command()
+    @pass_meta_key("value")
+    def show(value):
+        return value
+
+    result = runner.invoke(cli, ["show"], standalone_mode=False)
+    assert result.return_value == "good"
+
+
+def test_make_pass_meta_decorator_doc():
+```
+
+Source block "tests/test_utils.py" lines 20-71:
+```
+from click._utils import UNSET
+
+
+def test_unset_sentinel():
+    value = UNSET
+
+    assert value
+    assert value is UNSET
+    assert value == UNSET
+    assert repr(value) == "Sentinel.UNSET"
+    assert str(value) == "Sentinel.UNSET"
+    assert bool(value) is True
+
+    # Try all native Python values that can be falsy or truthy.
+    # See: https://docs.python.org/3/library/stdtypes.html#truth-value-testing
+    real_values = (
+        None,
+        True,
+        False,
+        0,
+        1,
+        0.0,
+        1.0,
+        0j,
+        1j,
+        Decimal(0),
+        Decimal(1),
+        Fraction(0, 1),
+        Fraction(1, 1),
+        "",
+        "a",
+        "UNSET",
+        "Sentinel.UNSET",
+        [1],
+        (1),
+        {1: "a"},
+        set(),
+        set([1]),
+        frozenset(),
+        frozenset([1]),
+        range(0),
+        range(1),
+    )
+
+    for real_value in real_values:
+        assert value != real_value
+        assert value is not real_value
+
+    assert value not in real_values
+
+
+def test_echo(runner):
+```
+
+Source block "tests/test_utils.py" lines 300-308:
+```
+    yield "test"
+
+
+def _test_simulate_keyboard_interrupt(file=None):
+    yield "output_before_keyboard_interrupt"
+    raise KeyboardInterrupt()
+
+
+EchoViaPagerTest = namedtuple(
+```
+
+Declaration locations:
+- "tests/test_context.py"
+  test_get_context_objects@39-59
+  test_get_context_objects_no_ensuring@62-82
+  test_get_context_objects_missing@85-107
+  test_make_pass_meta_decorator@162-174
+  test_make_pass_meta_decorator_doc@177-181
+  test_hiding_of_unset_sentinel_in_callbacks@184-291
+  test_close_before_pop@336-354
+  test_close_before_exit@357-377
+  test_multiple_eager_callbacks@380-433
+  test_no_state_leaks@436-519
+  test_with_resource_exception@538-589
+  test_with_resource_nested_exception@592-660
+- "tests/test_utils.py"
+  test_unset_sentinel@23-68
+  _test_simulate_keyboard_interrupt@303-305
+  MockMain.__init__@795-796
+- "src/click/_utils.py"
+  Sentinel.__repr__@18-19
+
+End context.

@@ -1,0 +1,51 @@
+task_id: click-3818
+repo_id: pallets__click
+base_sha: b47c0529e99129d4785fecc2cb39a8ec8b4aa5f8
+gold_sha: 00f257bb8e714064bea16425007543bbc0800445
+fix_ref: https://github.com/pallets/click/pull/3818
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Race condition on `KeyboardInterrupt`
+  in `Command.main()`. Preserve the established public API and behavior outside that
+  case.'
+changed_files: &id001
+- src/click/core.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/click-3818/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_context.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__click/uv
+expected_test_seconds: 30.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/click-3818/gold.patch
+  sha256: 6451b038c59804eb11690472c24e5c0440a801bf24bd72e61f74713dcea911d0
+  role: evaluator-gold-patch
+- path: tasks/click-3818/hidden_tests.patch
+  sha256: 1e912f0cd89c88d544259b07c08a316b243007595f8cb2b9a280e677035eb99a
+  role: evaluator-hidden-tests
+- path: tasks/click-3818/admission.json
+  sha256: a61a2ea825b1ce2972cce0e34e339c00f27366b40ecc160a468d4e8282d0a36b
+  role: admission-evidence
+- path: tasks/click-3818/sanitization.md
+  sha256: 378f95c5a725e54ed33c9d073bb48f5949853fbf3dff783c015a0ada508c973b
+  role: sanitization-review
+- path: tasks/click-3818/gold-evidence.json
+  sha256: 7c0b55ed4257e8b5c24293a332f16c1429c9348d96c8ef7694dcafa74fd34f50
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_abort_interrupt.py

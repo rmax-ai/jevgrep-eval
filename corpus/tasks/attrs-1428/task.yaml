@@ -1,0 +1,44 @@
+task_id: attrs-1428
+repo_id: python-attrs__attrs
+base_sha: 94caa57142c057ce52504cdf239ae0ed3168f9b5
+gold_sha: 937b1e232803cc4ec9b9375ef525fc57c24ec498
+fix_ref: https://github.com/python-attrs/attrs/pull/1428
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Issue. Preserve the established
+  public API and behavior outside that case.'
+changed_files: &id001
+- src/attr/_make.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/attrs-1428/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_make.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-attrs__attrs/uv
+expected_test_seconds: 30.0
+stratum: configuration-registration
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/attrs-1428/gold.patch
+  sha256: 523f385a1efd3058281790e9e323cb24dbcbadecce45a8833bfea0ae9819f92d
+  role: evaluator-gold-patch
+- path: tasks/attrs-1428/hidden_tests.patch
+  sha256: 816b55a3b815d0fef7b46f7a5a8fd34245f96130e301a77b35b0088bd196ab21
+  role: evaluator-hidden-tests
+- path: tasks/attrs-1428/admission.json
+  sha256: d5f431a3579a247c337b153e13859b6c1574e6fa616afdadcc9629db3ca9a25e
+  role: admission-evidence
+- path: tasks/attrs-1428/sanitization.md
+  sha256: b17c24513e4ba6c47e7ab1787182c0d73804edacf4028666ba3212e3f7912931
+  role: sanitization-review
+- path: tasks/attrs-1428/gold-evidence.json
+  sha256: 07970978df0772f6145518f983d1826c8eb80ed1be004196187234d9cbe9e694
+  role: evaluator-gold-evidence

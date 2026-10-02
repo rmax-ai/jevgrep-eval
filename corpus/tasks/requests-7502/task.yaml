@@ -1,0 +1,45 @@
+task_id: requests-7502
+repo_id: psf__requests
+base_sha: 661970d171d9c3e12e4c789c4768db647d8c4da0
+gold_sha: 6f205ff422bccd5e4c4fc0b64c5f3e7df5181db6
+fix_ref: https://github.com/psf/requests/pull/7502
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: `_encode_files` detection
+  for `__getattr__`-based file wrappers. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/requests/models.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/requests-7502/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_requests.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/psf__requests/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/requests-7502/gold.patch
+  sha256: 0d927b010188b34c1f00d8026990d2954610610b31b908bf1640754d85891559
+  role: evaluator-gold-patch
+- path: tasks/requests-7502/hidden_tests.patch
+  sha256: bc30619edf41e82fecc3fc0594be1bdb835f4d6bf1b2bc049e4d1817d1b124ef
+  role: evaluator-hidden-tests
+- path: tasks/requests-7502/admission.json
+  sha256: 58758aeff2f6d8da60801935117f7953cba1b4e172a85ed01b396661f32b78e2
+  role: admission-evidence
+- path: tasks/requests-7502/sanitization.md
+  sha256: 407c682c6534dbbe88733887d2ca30a347632205afde73a62cbca982488b5bad
+  role: sanitization-review
+- path: tasks/requests-7502/gold-evidence.json
+  sha256: 2d783e145353e27711ebd53b62dd199f546f7d38c6137a09c2ec616530bef6db
+  role: evaluator-gold-evidence

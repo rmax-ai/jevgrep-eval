@@ -1,0 +1,51 @@
+task_id: click-3533
+repo_id: pallets__click
+base_sha: cd9bdd96a9dcc8e4ecabd45b5c244dbc70034484
+gold_sha: 4df304c658666f34a5ca4335ab0da15832f02f9e
+fix_ref: https://github.com/pallets/click/pull/3533
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Ensure the GC close a borrowed
+  `stdout`. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- src/click/_termui_impl.py
+- src/click/utils.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/click-3533/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_context.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__click/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/click-3533/gold.patch
+  sha256: 25229da460c34eabe0797b6278b37876ab6e2838ab4699a30614e34ee722bae4
+  role: evaluator-gold-patch
+- path: tasks/click-3533/hidden_tests.patch
+  sha256: 982382f58231586c428c7b655bb4bfae7f9aad7200c0ebbdea20b218e6edbea4
+  role: evaluator-hidden-tests
+- path: tasks/click-3533/admission.json
+  sha256: 3c09286b469a21fc01ed7aec906389989b8a45823bcd6629db5ecd520e7bfcdf
+  role: admission-evidence
+- path: tasks/click-3533/sanitization.md
+  sha256: bae7a68f47e7a4bf52adee35a25574dce380913943c9336b0ed7b73510941a4c
+  role: sanitization-review
+- path: tasks/click-3533/gold-evidence.json
+  sha256: 0cc06a31c176c4bee19857f8e98fa785badda0e222244556dfe3a0ad645daa3d
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_termui.py

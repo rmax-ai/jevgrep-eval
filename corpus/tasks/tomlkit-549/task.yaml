@@ -1,0 +1,45 @@
+task_id: tomlkit-549
+repo_id: python-poetry__tomlkit
+base_sha: e23a25438c6cc9b8cc28b6dcf76dc52f9c7a33e3
+gold_sha: 67d3e86502706df2a9ed67114ab67e25bcdcbbb7
+fix_ref: https://github.com/python-poetry/tomlkit/pull/549
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Array of tables replacing
+  a dotted key swallowing the next sibling. Preserve the established public API and
+  behavior outside that case.'
+changed_files: &id001
+- tomlkit/container.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/tomlkit-549/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_toml_document.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-poetry__tomlkit/uv
+expected_test_seconds: 30.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/tomlkit-549/gold.patch
+  sha256: 9a70362fd4695a9325cf92b46cfcb526ed34c21b411e4d6105d8e694560a99b2
+  role: evaluator-gold-patch
+- path: tasks/tomlkit-549/hidden_tests.patch
+  sha256: f567d37f4ae4a9704e101de42b52f93634e47c5fa8edbbfb156b72d49b65a3e3
+  role: evaluator-hidden-tests
+- path: tasks/tomlkit-549/admission.json
+  sha256: 03f23f1c417e409c0a479451274f95c794721e2f69f4c9c281f2ea77dbda1b01
+  role: admission-evidence
+- path: tasks/tomlkit-549/sanitization.md
+  sha256: b97b2fdbf71485bae9bae8715c1e663ba9e7fcdd108b965e0b9c27fb2ef3797b
+  role: sanitization-review
+- path: tasks/tomlkit-549/gold-evidence.json
+  sha256: 906ff0b0b98b05a542f5f22d57b50c82c0bdceb74a869e9648f6f123d0efffd9
+  role: evaluator-gold-evidence

@@ -1,0 +1,6 @@
+id: a6
+label: paths-only-localization-hint
+retrieval_tools: []
+forced_first: none
+oracle_hint: true
+notes: "Pre-base adjudicated source paths only; localization ceiling, not correctness evidence."

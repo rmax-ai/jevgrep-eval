@@ -1,0 +1,51 @@
+task_id: click-3805
+repo_id: pallets__click
+base_sha: 3cbcf9b11546f4cf10b36d3e2e531733ba6fe001
+gold_sha: 4295457ddc7b5ca9a733d59ca40d9651b02b9b1d
+fix_ref: https://github.com/pallets/click/pull/3805
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: `copy`, `deepcopy` and
+  `pickle` of `Sentinel` members. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/click/_utils.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/click-3805/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_utils/test_sentinel.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__click/uv
+expected_test_seconds: 30.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/click-3805/gold.patch
+  sha256: d53fcec92aceaccdeec26a858ac7863844fb475fb90d032818b6555e8ca5be6c
+  role: evaluator-gold-patch
+- path: tasks/click-3805/hidden_tests.patch
+  sha256: 9c08ff9e8c3db86ec82890ba5bbc838de675558f8b7de7687ba04ebdc2b8d436
+  role: evaluator-hidden-tests
+- path: tasks/click-3805/admission.json
+  sha256: dd752495cc256006ae3358f05f9a82f972477ff8efdbce2ae37c01ef62f36f31
+  role: admission-evidence
+- path: tasks/click-3805/sanitization.md
+  sha256: b9ae1427ab52492feeb81be9f5c81e6ae4d47fae2b1fcc9d967774ef287f2321
+  role: sanitization-review
+- path: tasks/click-3805/gold-evidence.json
+  sha256: 7eb656ee1610a919cb602e391d015e88fbf7c0c3a64de61d03a3b2c81c397dc2
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_utils/test_sentinel.py

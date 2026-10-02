@@ -1,0 +1,1 @@
+{"files":["src/attr/_make.py"],"gold_patch_sha256":"523f385a1efd3058281790e9e323cb24dbcbadecce45a8833bfea0ae9819f92d","gold_sha":"937b1e232803cc4ec9b9375ef525fc57c24ec498","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"attrs-1428"}

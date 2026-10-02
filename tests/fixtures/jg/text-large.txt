@@ -1,0 +1,2202 @@
+Jevgrep: 20 relevant files.
+Symbols use name@start-end. Roles are estimates; locations-only files remain reading leads.
+AGENTS.md lookup (root and returned-file ancestors): none found.
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_commands.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_options.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_arguments.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_basic.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_parser.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_defaults.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_types/test_IntRange.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_chain.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_context.py'
+Suggested test entry point (not executed): python -m pytest -q 'tests/test_types/test_FloatRange.py'
+- "src/click/parser.py" — implementation, caller, helper; source below
+- "src/click/core.py" — implementation, caller, helper; source below
+- "src/click/types.py" — implementation, helper; locations only
+- "tests/test_normalization.py" — caller, test, fixture, helper; source below
+- "tests/test_parser.py" — caller, test, fixture, helper; source below
+- "tests/test_options.py" — test, fixture, helper; source below
+- "tests/test_arguments.py" — test, fixture, helper; source below
+- "tests/test_commands.py" — caller, test, fixture, helper; source below
+- "tests/test_types/test_IntRange.py" — test, fixture, helper; source below
+- "tests/test_basic.py" — caller, test, fixture, helper; source below
+- "examples/validation/validation.py" — caller, fixture, helper; source below
+- "tests/test_types/test_FloatRange.py" — test, fixture, helper; source below
+- "tests/test_defaults.py" — caller, test, fixture, helper; source below
+- "tests/test_chain.py" — test, fixture, helper; source below
+- "tests/test_types/test_Choice.py" — test, fixture, helper; source below
+- "tests/test_types/test_FuncParamType.py" — test, fixture, helper; locations only
+- "tests/test_context.py" — test, fixture, helper; source below
+- "tests/test_types/test_Path.py" — test, fixture; locations only
+- "tests/test_termui.py" — test, fixture; locations only
+- "docs/shell-completion.md" — helper; locations only
+End file list. Declaration locations follow source.
+
+Source block "src/click/parser.py" lines 108-166:
+```
+    return tuple(rv), list(args)
+
+
+def _split_opt(opt: str) -> tuple[str, str]:
+    first = opt[:1]
+    if first.isalnum():
+        return "", opt
+    if opt[1:2] == first:
+        return opt[:2], opt[2:]
+    return first, opt[1:]
+
+
+def _normalize_opt(opt: str, ctx: Context | None) -> str:
+    if ctx is None or ctx.token_normalize_func is None:
+        return opt
+    prefix, opt = _split_opt(opt)
+    return f"{prefix}{ctx.token_normalize_func(opt)}"
+
+
+class _Option:
+    def __init__(
+        self,
+        obj: CoreOption,
+        opts: cabc.Sequence[str],
+        dest: str | None,
+        action: str | None = None,
+        nargs: int = 1,
+        const: t.Any | None = None,
+    ):
+        self._short_opts = []
+        self._long_opts = []
+        self.prefixes: set[str] = set()
+
+        for opt in opts:
+            prefix, value = _split_opt(opt)
+            if not prefix:
+                raise ValueError(
+                    _("Invalid start character for option ({option})").format(
+                        option=opt
+                    )
+                )
+            self.prefixes.add(prefix[0])
+            if len(prefix) == 1 and len(value) == 1:
+                self._short_opts.append(opt)
+            else:
+                self._long_opts.append(opt)
+                self.prefixes.add(prefix)
+
+        if action is None:
+            action = "store"
+
+        self.dest = dest
+        self.action = action
+        self.nargs = nargs
+        self.const = const
+        self.obj = obj
+
+    @property
+    def takes_value(self) -> bool:
+```
+
+Source block "src/click/parser.py" lines 182-216:
+```
+        state.order.append(self.obj)
+
+
+class _Argument:
+    def __init__(self, obj: CoreArgument, dest: str | None, nargs: int = 1):
+        self.dest = dest
+        self.nargs = nargs
+        self.obj = obj
+
+    def process(
+        self,
+        value: str | cabc.Sequence[str | T_UNSET] | T_UNSET,
+        state: _ParsingState,
+    ) -> None:
+        if self.nargs > 1:
+            assert isinstance(value, cabc.Sequence)
+            holes = sum(x is UNSET for x in value)
+            if holes == len(value):
+                value = UNSET
+            elif holes != 0:
+                raise BadArgumentUsage(
+                    _("Argument {name!r} takes {nargs} values.").format(
+                        name=self.dest, nargs=self.nargs
+                    )
+                )
+
+        # We failed to collect any argument value so we consider the argument as unset.
+        if value == ():
+            value = UNSET
+
+        state.opts[self.dest] = value  # type: ignore
+        state.order.append(self.obj)
+
+
+class _ParsingState:
+```
+
+Source block "src/click/parser.py" lines 221-243:
+```
+        self.order: list[CoreParameter] = []
+
+
+class _OptionParser:
+    """The option parser is an internal class that is ultimately used to
+    parse options and arguments.  It's modelled after optparse and brings
+    a similar but vastly simplified API.  It should generally not be used
+    directly as the high level Click classes wrap it for you.
+
+    It's not nearly as extensible as optparse or argparse as it does not
+    implement features that are implemented on a higher level (such as
+    types or defaults).
+
+    :param ctx: optionally the :class:`~click.Context` where this parser
+                should go with.
+
+    .. deprecated:: 8.2
+        Will be removed in Click 9.0.
+    """
+
+    def __init__(self, ctx: Context | None = None) -> None:
+        #: The :class:`~click.Context` for this parser.  This might be
+        #: `None` for some advanced use cases.
+```
+
+Source block "src/click/parser.py" lines 295-503:
+```
+        """
+        self._args.append(_Argument(obj, dest=dest, nargs=nargs))
+
+    def parse_args(
+        self, args: list[str]
+    ) -> tuple[dict[str, t.Any], list[str], list[CoreParameter]]:
+        """Parses positional arguments and returns ``(values, args, order)``
+        for the parsed options and arguments as well as the leftover
+        arguments if there are any.  The order is a list of objects as they
+        appear on the command line.  If arguments appear multiple times they
+        will be memorized multiple times as well.
+        """
+        state = _ParsingState(args)
+        try:
+            self._process_args_for_options(state)
+            self._process_args_for_args(state)
+        except UsageError:
+            if self.ctx is None or not self.ctx.resilient_parsing:
+                raise
+        return state.opts, state.largs, state.order
+
+    def _process_args_for_args(self, state: _ParsingState) -> None:
+        pargs, args = _unpack_args(
+            state.largs + state.rargs, [x.nargs for x in self._args]
+        )
+
+        for idx, arg in enumerate(self._args):
+            arg.process(pargs[idx], state)
+
+        state.largs = args
+        state.rargs = []
+
+    def _process_args_for_options(self, state: _ParsingState) -> None:
+        while state.rargs:
+            arg = state.rargs.pop(0)
+            arglen = len(arg)
+            # Double dashes always handled explicitly regardless of what
+            # prefixes are valid.
+            if arg == "--":
+                return
+            elif arg[:1] in self._opt_prefixes and arglen > 1:
+                self._process_opts(arg, state)
+            elif self.allow_interspersed_args:
+                state.largs.append(arg)
+            else:
+                state.rargs.insert(0, arg)
+                return
+
+        # Say this is the original argument list:
+        # [arg0, arg1, ..., arg(i-1), arg(i), arg(i+1), ..., arg(N-1)]
+        #                            ^
+        # (we are about to process arg(i)).
+        #
+        # Then rargs is [arg(i), ..., arg(N-1)] and largs is a *subset* of
+        # [arg0, ..., arg(i-1)] (any options and their arguments will have
+        # been removed from largs).
+        #
+        # The while loop will usually consume 1 or more arguments per pass.
+        # If it consumes 1 (eg. arg is an option that takes no arguments),
+        # then after _process_arg() is done the situation is:
+        #
+        #   largs = subset of [arg0, ..., arg(i)]
+        #   rargs = [arg(i+1), ..., arg(N-1)]
+        #
+        # If allow_interspersed_args is false, largs will always be
+        # *empty* -- still a subset of [arg0, ..., arg(i-1)], but
+        # not a very interesting subset!
+
+    def _match_long_opt(
+        self, opt: str, explicit_value: str | None, state: _ParsingState
+    ) -> None:
+        if opt not in self._long_opt:
+            raise NoSuchOption(opt, possibilities=self._long_opt, ctx=self.ctx)
+
+        option = self._long_opt[opt]
+        if option.takes_value:
+            # At this point it's safe to modify rargs by injecting the
+            # explicit value, because no exception is raised in this
+            # branch.  This means that the inserted value will be fully
+            # consumed.
+            if explicit_value is not None:
+                state.rargs.insert(0, explicit_value)
+
+            value = self._get_value_from_state(opt, option, state)
+
+        elif explicit_value is not None:
+            raise BadOptionUsage(
+                opt, _("Option {name!r} does not take a value.").format(name=opt)
+            )
+
+        else:
+            value = UNSET
+
+        option.process(value, state)
+
+    def _match_short_opt(self, arg: str, state: _ParsingState) -> None:
+        stop = False
+        i = 1
+        prefix = arg[0]
+        unknown_options = []
+
+        for ch in arg[1:]:
+            opt = _normalize_opt(f"{prefix}{ch}", self.ctx)
+            option = self._short_opt.get(opt)
+            i += 1
+
+            if not option:
+                if self.ignore_unknown_options:
+                    unknown_options.append(ch)
+                    continue
+                raise NoSuchOption(opt, ctx=self.ctx)
+            if option.takes_value:
+                # Any characters left in arg?  Pretend they're the
+                # next arg, and stop consuming characters of arg.
+                if i < len(arg):
+                    state.rargs.insert(0, arg[i:])
+                    stop = True
+
+                value = self._get_value_from_state(opt, option, state)
+
+            else:
+                value = UNSET
+
+            option.process(value, state)
+
+            if stop:
+                break
+
+        # If we got any unknown options we recombine the string of the
+        # remaining options and re-attach the prefix, then report that
+        # to the state as new large.  This way there is basic combinatorics
+        # that can be achieved while still ignoring unknown arguments.
+        if self.ignore_unknown_options and unknown_options:
+            state.largs.append(f"{prefix}{''.join(unknown_options)}")
+
+    def _get_value_from_state(
+        self, option_name: str, option: _Option, state: _ParsingState
+    ) -> str | cabc.Sequence[str] | T_UNSET | T_FLAG_NEEDS_VALUE:
+        nargs = option.nargs
+
+        value: str | cabc.Sequence[str] | T_UNSET | T_FLAG_NEEDS_VALUE
+
+        if len(state.rargs) < nargs:
+            if option.obj._flag_needs_value:
+                # Option allows omitting the value.
+                value = FLAG_NEEDS_VALUE
+            else:
+                raise BadOptionUsage(
+                    option_name,
+                    ngettext(
+                        "Option {name!r} requires an argument.",
+                        "Option {name!r} requires {nargs} arguments.",
+                        nargs,
+                    ).format(name=option_name, nargs=nargs),
+                )
+        elif nargs == 1:
+            next_rarg = state.rargs[0]
+
+            if (
+                option.obj._flag_needs_value
+                and isinstance(next_rarg, str)
+                and next_rarg[:1] in self._opt_prefixes
+                and len(next_rarg) > 1
+            ):
+                # The next arg looks like the start of an option, don't
+                # use it as the value if omitting the value is allowed.
+                value = FLAG_NEEDS_VALUE
+            else:
+                value = state.rargs.pop(0)
+        else:
+            value = tuple(state.rargs[:nargs])
+            del state.rargs[:nargs]
+
+        return value
+
+    def _process_opts(self, arg: str, state: _ParsingState) -> None:
+        explicit_value = None
+        # Long option handling happens in two parts.  The first part is
+        # supporting explicitly attached values.  In any case, we will try
+        # to long match the option first.
+        if "=" in arg:
+            long_opt, explicit_value = arg.split("=", 1)
+        else:
+            long_opt = arg
+        norm_long_opt = _normalize_opt(long_opt, self.ctx)
+
+        # At this point we will match the (assumed) long option through
+        # the long option matching code.  Note that this allows options
+        # like "-foo" to be matched as long options.
+        try:
+            self._match_long_opt(norm_long_opt, explicit_value, state)
+        except NoSuchOption:
+            # At this point the long option matching failed, and we need
+            # to try with short options.  However there is a special rule
+            # which says, that if we have a two character options prefix
+            # (applies to "--foo" for instance), we do not dispatch to the
+            # short option code and will instead raise the no option
+            # error.
+            if arg[:2] not in self._opt_prefixes:
+                self._match_short_opt(arg, state)
+                return
+
+            if not self.ignore_unknown_options:
+                raise
+
+            state.largs.append(arg)
+
+
+def __getattr__(name: str) -> object:
+```
+
+Source block "src/click/core.py" lines 982-1063:
+```
+        return self._parameter_source.get(name)
+
+
+class Command:
+    """Commands are the basic building block of command line interfaces in
+    Click.  A basic command handles command line parsing and might dispatch
+    more parsing to commands nested below it.
+
+    :param name: the name of the command to use unless a group overrides it.
+    :param context_settings: an optional dictionary with defaults that are
+                             passed to the context object.
+    :param callback: the callback to invoke.  This is optional.
+    :param params: the parameters to register with this command.  This can
+                   be either :class:`Option` or :class:`Argument` objects.
+    :param help: the help string to use for this command.
+    :param epilog: like the help string but it's printed at the end of the
+                   help page after everything else.
+    :param short_help: the short help to use for this command.  This is
+                       shown on the command listing of the parent command.
+    :param add_help_option: by default each command registers a ``--help``
+                            option.  This can be disabled by this parameter.
+    :param no_args_is_help: this controls what happens if no arguments are
+                            provided.  This option is disabled by default.
+                            If enabled this will add ``--help`` as argument
+                            if no arguments are passed
+    :param hidden: hide this command from help outputs.
+    :param deprecated: If ``True`` or non-empty string, issues a message
+                        indicating that the command is deprecated and highlights
+                        its deprecation in --help. The message can be customized
+                        by using a string as the value.
+
+    .. versionchanged:: 8.2
+        This is the base class for all commands, not ``BaseCommand``.
+        ``deprecated`` can be set to a string as well to customize the
+        deprecation message.
+
+    .. versionchanged:: 8.1
+        ``help``, ``epilog``, and ``short_help`` are stored unprocessed,
+        all formatting is done when outputting help text, not at init,
+        and is done even if not using the ``@command`` decorator.
+
+    .. versionchanged:: 8.0
+        Added a ``repr`` showing the command name.
+
+    .. versionchanged:: 7.1
+        Added the ``no_args_is_help`` parameter.
+
+    .. versionchanged:: 2.0
+        Added the ``context_settings`` parameter.
+    """
+
+    #: The context class to create with :meth:`make_context`.
+    #:
+    #: .. versionadded:: 8.0
+    context_class: type[Context] = Context
+
+    #: the default for the :attr:`Context.allow_extra_args` flag.
+    allow_extra_args = False
+
+    #: the default for the :attr:`Context.allow_interspersed_args` flag.
+    allow_interspersed_args = True
+
+    #: the default for the :attr:`Context.ignore_unknown_options` flag.
+    ignore_unknown_options = False
+
+    name: str | None
+    context_settings: cabc.MutableMapping[str, t.Any]
+    callback: t.Callable[..., t.Any] | None
+    params: list[Parameter]
+    help: str | None
+    epilog: str | None
+    options_metavar: str | None
+    short_help: str | None
+    add_help_option: bool
+    _help_option: Option | None
+    no_args_is_help: bool
+    hidden: bool
+    deprecated: bool | str
+
+    def __init__(
+        self,
+        name: str | None,
+```
+
+Source block "src/click/core.py" lines 1389-1429:
+```
+            self.parse_args(ctx, args)
+        return ctx
+
+    def parse_args(self, ctx: Context, args: list[str]) -> list[str]:
+        if not args and self.no_args_is_help and not ctx.resilient_parsing:
+            raise NoArgsIsHelpError(ctx)
+
+        parser = self.make_parser(ctx)
+        opts, args, param_order = parser.parse_args(args=args)
+
+        for param in iter_params_for_processing(param_order, self.get_params(ctx)):
+            _, args = param.handle_parse_result(ctx, opts, args)
+
+        # We now have all parameters' values into `ctx.params`, but the data may contain
+        # the `UNSET` sentinel.
+        # Convert `UNSET` to `None` to ensure that the user doesn't see `UNSET`.
+        #
+        # Waiting until after the initial parse to convert allows us to treat `UNSET`
+        # more like a missing value when multiple params use the same name.
+        # Refs:
+        # https://github.com/pallets/click/issues/3071
+        # https://github.com/pallets/click/pull/3079
+        for name, value in ctx.params.items():
+            if value is UNSET:
+                ctx.params[name] = None
+
+        if args and not ctx.allow_extra_args and not ctx.resilient_parsing:
+            ctx.fail(
+                ngettext(
+                    "Got unexpected extra argument ({args})",
+                    "Got unexpected extra arguments ({args})",
+                    len(args),
+                ).format(args=" ".join(map(str, args)))
+            )
+
+        ctx.args = args
+        ctx._opt_prefixes.update(parser._opt_prefixes)
+        return args
+
+    def invoke(self, ctx: Context) -> t.Any:
+        """Given a context, this invokes the attached callback (if it exists)
+```
+
+Source block "src/click/core.py" lines 2234-2358:
+```
+    return iter(value)
+
+
+class Parameter(ABC):
+    r"""A parameter to a command comes in two versions: they are either
+    :class:`Option`\s or :class:`Argument`\s.  Other subclasses are currently
+    not supported by design as some of the internals for parsing are
+    intentionally not finalized.
+
+    Some settings are supported by both options and arguments.
+
+    :param param_decls: the parameter declarations for this option or
+                        argument.  This is a list of flags or argument
+                        names.
+    :param type: the type that should be used.  Either a :class:`ParamType`
+                 or a Python type.  The latter is converted into the former
+                 automatically if supported.
+    :param required: controls if this is optional or not.
+    :param default: the default value if omitted.  This can also be a callable,
+                    in which case it's invoked when the default is needed
+                    without any arguments.
+    :param callback: A function to further process or validate the value
+        after type conversion. It is called as ``f(ctx, param, value)``
+        and must return the value. It is called for all sources,
+        including prompts.
+    :param nargs: the number of arguments to match.  If not ``1`` the return
+                  value is a tuple instead of single value.  The default for
+                  nargs is ``1`` (except if the type is a tuple, then it's
+                  the arity of the tuple). If ``nargs=-1``, all remaining
+                  parameters are collected.
+    :param metavar: how the value is represented in the help page.
+    :param expose_value: if this is `True` then the value is passed onwards
+                         to the command callback and stored on the context,
+                         otherwise it's skipped.
+    :param is_eager: eager values are processed before non eager ones.  This
+                     should not be set for arguments or it will inverse the
+                     order of processing.
+    :param envvar: environment variable(s) that are used to provide a default value for
+        this parameter. This can be a string or a sequence of strings. If a sequence is
+        given, only the first non-empty environment variable is used for the parameter.
+    :param shell_complete: A function that returns custom shell
+        completions. Used instead of the param's type completion if
+        given. Takes ``ctx, param, incomplete`` and must return a list
+        of :class:`~click.shell_completion.CompletionItem` or a list of
+        strings.
+    :param deprecated: If ``True`` or non-empty string, issues a message
+                        indicating that the argument is deprecated and highlights
+                        its deprecation in --help. The message can be customized
+                        by using a string as the value. A deprecated parameter
+                        cannot be required, a ValueError will be raised otherwise.
+    :param help: the help string. It is dedented and get a deprecated label if
+        appropriate.
+
+    .. versionchanged:: 8.5.1
+        New ``help`` parameter to replace the one from :class:`Option` and
+        :class:`Argument`.
+
+    .. versionchanged:: 8.2.0
+        Introduction of ``deprecated``.
+
+    .. versionchanged:: 8.2
+        Adding duplicate parameter names to a :class:`~click.core.Command` will
+        result in a ``UserWarning`` being shown.
+
+    .. versionchanged:: 8.2
+        Adding duplicate parameter names to a :class:`~click.core.Command` will
+        result in a ``UserWarning`` being shown.
+
+    .. versionchanged:: 8.0
+        ``process_value`` validates required parameters and bounded
+        ``nargs``, and invokes the parameter callback before returning
+        the value. This allows the callback to validate prompts.
+        ``full_process_value`` is removed.
+
+    .. versionchanged:: 8.0
+        ``autocompletion`` is renamed to ``shell_complete`` and has new
+        semantics described above. The old name is deprecated and will
+        be removed in 8.1, until then it will be wrapped to match the
+        new requirements.
+
+    .. versionchanged:: 8.0
+        For ``multiple=True, nargs>1``, the default must be a list of
+        tuples.
+
+    .. versionchanged:: 8.0
+        Setting a default is no longer required for ``nargs>1``, it will
+        default to ``None``. ``multiple=True`` or ``nargs=-1`` will
+        default to ``()``.
+
+    .. versionchanged:: 7.1
+        Empty environment variables are ignored rather than taking the
+        empty string value. This makes it possible for scripts to clear
+        variables if they can't unset them.
+
+    .. versionchanged:: 2.0
+        Changed signature for parameter callback to also be passed the
+        parameter. The old callback format will still work, but it will
+        raise a warning to give you a chance to migrate the code easier.
+    """
+
+    param_type_name = "parameter"
+
+    name: str
+    opts: list[str]
+    secondary_opts: list[str]
+    # `Parameter.type` is annotated in `__init__` to avoid confusing mypy
+    required: bool
+    callback: t.Callable[[Context, Parameter, t.Any], t.Any] | None
+    nargs: int
+    multiple: bool
+    expose_value: bool
+    default: t.Any | t.Callable[[], t.Any] | None
+    _default_explicit: bool
+    is_eager: bool
+    metavar: str | None
+    envvar: str | cabc.Sequence[str] | None
+    _custom_shell_complete: (
+        t.Callable[[Context, Parameter, str], list[CompletionItem] | list[str]] | None
+    )
+    deprecated: bool | str
+    help: str | None
+
+    def __init__(
+        self,
+        param_decls: cabc.Sequence[str] | None = None,
+```
+
+Source block "src/click/core.py" lines 2482-2517:
+```
+    def _check_name_is_usable(self, name: str, decls: cabc.Sequence[str]) -> None:
+        """Warn about a name Click 9.0 will refuse.
+
+        A name is refused for one of two reasons, and never for both: it is not
+        an identifier (``0-file``), or it is a keyword (``from``).
+        ``str.isidentifier`` accepts a keyword, so ``--from`` names a parameter
+        ``from`` today. No callback can declare that, which leaves the value
+        reachable through ``**kwargs`` alone.
+
+        Soft keywords such as ``match`` and ``type`` are contextual and name a
+        parameter fine, so :func:`keyword.iskeyword` passes them.
+
+        Both imports are local because neither :mod:`keyword` nor
+        :mod:`warnings` is on the allow-list ``tests/test_imports.py`` holds
+        Click's import footprint to.
+
+        .. versionadded:: 8.6.0
+        """
+        import keyword
+
+        if keyword.iskeyword(name):
+            reason = "which is a Python keyword"
+        elif not name.isidentifier():
+            reason = "which is not a valid Python identifier"
+        else:
+            return
+
+        import warnings
+
+        warnings.warn(
+            f"{self.param_type_name.capitalize()} {list(decls)!r} uses {name!r}"
+            f" as its name, {reason}. This is deprecated and will raise a"
+            " TypeError in Click 9.0.",
+            DeprecationWarning,
+            stacklevel=_outside_click_stacklevel(),
+        )
+```
+
+Source block "src/click/core.py" lines 2631-2691:
+```
+
+        return value, source
+
+    def type_cast_value(self, ctx: Context, value: t.Any) -> t.Any:
+        """Convert and validate a value against the parameter's
+        :attr:`type`, :attr:`multiple`, and :attr:`nargs`.
+        """
+        if value is None:
+            if self.multiple or self.nargs == -1:
+                return ()
+            else:
+                return value
+
+        def check_iter(value: t.Any) -> cabc.Iterator[t.Any]:
+            try:
+                return _check_iter(value)
+            except TypeError:
+                # This should only happen when passing in args manually,
+                # the parser should construct an iterable when parsing
+                # the command line.
+                raise BadParameter(
+                    _("Value must be an iterable."), ctx=ctx, param=self
+                ) from None
+
+        # Define the conversion function based on nargs and type.
+
+        if self.nargs == 1 or self.type.is_composite:
+
+            def convert(value: t.Any) -> t.Any:
+                return self.type(value, param=self, ctx=ctx)
+
+        elif self.nargs == -1:
+
+            def convert(value: t.Any) -> t.Any:  # tuple[t.Any, ...]
+                return tuple(self.type(x, self, ctx) for x in check_iter(value))
+
+        else:  # nargs > 1
+
+            def convert(value: t.Any) -> t.Any:  # tuple[t.Any, ...]
+                value = tuple(check_iter(value))
+
+                if len(value) != self.nargs:
+                    raise BadParameter(
+                        ngettext(
+                            "Takes {nargs} values but 1 was given.",
+                            "Takes {nargs} values but {len} were given.",
+                            len(value),
+                        ).format(nargs=self.nargs, len=len(value)),
+                        ctx=ctx,
+                        param=self,
+                    )
+
+                return tuple(self.type(x, self, ctx) for x in value)
+
+        if self.multiple:
+            return tuple(convert(x) for x in check_iter(value))
+
+        return convert(value)
+
+    def value_is_missing(self, value: t.Any) -> bool:
+        """A value is considered missing if:
+```
+
+Source block "src/click/core.py" lines 2960-3057:
+```
+        return self.type.shell_complete(ctx, self, incomplete)
+
+
+class Option(Parameter):
+    """Options are usually optional values on the command line and
+    have some extra features that arguments don't have.
+
+    All other parameters are passed onwards to the parameter constructor.
+
+    :param show_default: Show the default value for this option in its
+        help text. Values are not shown by default, unless
+        :attr:`Context.show_default` is ``True``. If this value is a
+        string, it shows that string in parentheses instead of the
+        actual value. This is particularly useful for dynamic options.
+        For single option boolean flags, the default remains hidden if
+        its value is ``False``.
+    :param show_envvar: Controls if an environment variable should be
+        shown on the help page and error messages.
+        Normally, environment variables are not shown.
+    :param prompt: If set to ``True`` or a non empty string then the
+        user will be prompted for input. If set to ``True`` the prompt
+        will be the option name capitalized. A deprecated option cannot be
+        prompted.
+    :param confirmation_prompt: Prompt a second time to confirm the
+        value if it was prompted for. Can be set to a string instead of
+        ``True`` to customize the message.
+    :param prompt_required: If set to ``False``, the user will be
+        prompted for input only when the option was specified as a flag
+        without a value.
+    :param hide_input: If this is ``True`` then the input on the prompt
+        will be hidden from the user. This is useful for password input.
+    :param is_flag: forces this option to act as a flag.  The default is
+                    auto detection.
+    :param flag_value: which value should be used for this flag if it's
+                       enabled.  This is set to a boolean automatically if
+                       the option string contains a slash to mark two options.
+    :param multiple: if this is set to `True` then the argument is accepted
+                     multiple times and recorded.  This is similar to ``nargs``
+                     in how it works but supports arbitrary number of
+                     arguments.
+    :param count: this flag makes an option increment an integer.
+    :param allow_from_autoenv: if this is enabled then the value of this
+                               parameter will be pulled from an environment
+                               variable in case a prefix is defined on the
+                               context.
+    :param help: the help string.
+    :param hidden: hide this option from help outputs.
+    :param attrs: Other command arguments described in :class:`Parameter`.
+
+    .. versionchanged:: 8.4.0
+        Non-basic ``flag_value`` types (not ``str``, ``int``, ``float``, or
+        ``bool``) are passed through unchanged instead of being stringified.
+        Previously, ``type=click.UNPROCESSED`` was required to preserve them.
+
+    .. versionchanged:: 8.2
+        ``envvar`` used with ``flag_value`` will always use the ``flag_value``,
+        previously it would use the value of the environment variable.
+
+    .. versionchanged:: 8.1
+        Help text indentation is cleaned here instead of only in the
+        ``@option`` decorator.
+
+    .. versionchanged:: 8.1
+        The ``show_default`` parameter overrides
+        ``Context.show_default``.
+
+    .. versionchanged:: 8.1
+        The default of a single option boolean flag is not shown if the
+        default value is ``False``.
+
+    .. versionchanged:: 8.0.1
+        ``type`` is detected from ``flag_value`` if given, for basic Python
+        types (``str``, ``int``, ``float``, ``bool``).
+    """
+
+    param_type_name = "option"
+
+    prompt: str | None
+    confirmation_prompt: bool | str
+    prompt_required: bool
+    hide_input: bool
+    hidden: bool
+
+    _flag_needs_value: bool
+    is_flag: bool
+    flag_value: t.Any
+    type: types.ParamType[t.Any]
+    default: t.Any | t.Callable[[], t.Any] | None
+
+    count: bool
+    allow_from_autoenv: bool
+    show_default: bool | str | None
+    show_choices: bool
+    show_envvar: bool
+
+    def __init__(
+        self,
+        param_decls: cabc.Sequence[str] | None = None,
+```
+
+Source block "src/click/core.py" lines 3352-3423:
+```
+            stacklevel=_outside_click_stacklevel(),
+        )
+
+    def _parse_decls(
+        self, decls: cabc.Sequence[str], expose_value: bool
+    ) -> tuple[str, list[str], list[str]]:
+        opts = []
+        secondary_opts = []
+        name = None
+        explicit_name = None
+        possible_names = []
+
+        for decl in decls:
+            if decl.isidentifier():
+                if name is not None:
+                    raise TypeError(_("Name '{name}' defined twice").format(name=name))
+                name = explicit_name = decl
+            else:
+                split_char = ";" if decl[:1] == "/" else "/"
+                if split_char in decl:
+                    first, second = decl.split(split_char, 1)
+                    first = first.rstrip()
+                    if first:
+                        possible_names.append(_split_opt(first))
+                        opts.append(first)
+                    second = second.lstrip()
+                    if second:
+                        secondary_opts.append(second.lstrip())
+                    if first == second:
+                        raise ValueError(
+                            _(
+                                "Boolean option {decl!r} cannot use the"
+                                " same flag for true/false."
+                            ).format(decl=decl)
+                        )
+                else:
+                    possible_names.append(_split_opt(decl))
+                    opts.append(decl)
+
+        if name is None and possible_names:
+            possible_names.sort(key=lambda x: -len(x[0]))  # group long options first
+            name = possible_names[0][1].replace("-", "_").lower()
+
+        if name is None or not name.isidentifier():
+            if not expose_value:
+                self._check_name_is_usable(name or "", decls)
+                return "", opts, secondary_opts
+
+            raise TypeError(
+                _(
+                    "Could not determine name for option with declarations {decls!r}"
+                ).format(decls=decls)
+            )
+
+        if not opts and not secondary_opts:
+            raise TypeError(
+                _(
+                    "No options defined but a name was passed ({name})."
+                    " Did you mean to declare an argument instead? Did"
+                    " you mean to pass '--{name}'?"
+                ).format(name=name)
+            )
+
+        if explicit_name is not None:
+            self._check_name_is_normalized(explicit_name, decls)
+
+        self._check_name_is_usable(name, decls)
+
+        return name, opts, secondary_opts
+
+    def add_to_parser(self, parser: _OptionParser, ctx: Context) -> None:
+        if self.multiple:
+```
+
+Source block "tests/test_normalization.py" lines 3-5:
+```
+CONTEXT_SETTINGS = dict(token_normalize_func=lambda x: x.lower())
+
+
+```
+
+Source block "tests/test_parser.py" lines 19-21:
+```
+    assert split_arg_string(value) == expect
+
+
+```
+
+Source block "tests/test_options.py" lines 20-22:
+```
+from click.testing import CliRunner
+
+
+```
+
+Source block "tests/test_options.py" lines 37-39:
+```
+
+
+def test_invalid_option(runner):
+```
+
+Source block "tests/test_options.py" lines 98-100:
+```
+        assert opt.get_help_record(ctx)[0] == expected
+
+
+```
+
+Source block "tests/test_options.py" lines 121-123:
+```
+
+
+def test_deprecated_required(runner):
+```
+
+Source block "tests/test_options.py" lines 130-132:
+```
+        click.Option(["--a"], prompt=True, deprecated=True)
+
+
+```
+
+Source block "tests/test_options.py" lines 498-500:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_options.py" lines 573-575:
+```
+    assert result.output == repr(expected)
+
+
+```
+
+Source block "tests/test_options.py" lines 613-615:
+```
+
+
+def test_multiple_default_help(runner):
+```
+
+Source block "tests/test_options.py" lines 818-826:
+```
+# CPython upper-cases every key of ``os.environ`` when ``os.name == "nt"``,
+# see ``os._createenviron``. ``CliRunner`` writes the ``env`` mapping through
+# ``os.environ`` and ``Parameter.resolve_envvar_value`` reads it back the same
+# way, so on Windows a variable answers to every spelling of its name and
+# elsewhere to exactly one. Both halves are asserted rather than skipped: the
+# difference is the behaviour being pinned. See pallets/click#2483.
+ENV_NAMES_ARE_CASE_INSENSITIVE = sys.platform == "win32"
+
+
+```
+
+Source block "tests/test_options.py" lines 873-875:
+```
+
+
+def test_auto_envvar_flattens_name_case(runner):
+```
+
+Source block "tests/test_options.py" lines 904-906:
+```
+    assert result.output == "{'ß': 'foo'}\n"
+
+
+```
+
+Source block "tests/test_options.py" lines 1004-1039:
+```
+
+
+def test_custom_validation(runner):
+    def validate_pos_int(ctx, param, value):
+        if value < 0:
+            raise click.BadParameter("Value needs to be positive")
+        return value
+
+    @click.command()
+    @click.option("--foo", callback=validate_pos_int, default=1)
+    def cmd(foo):
+        click.echo(foo)
+
+    result = runner.invoke(cmd, ["--foo", "-1"])
+    assert "Invalid value for '--foo': Value needs to be positive" in result.output
+
+    result = runner.invoke(cmd, ["--foo", "42"])
+    assert result.output == "42\n"
+
+
+def test_callback_validates_prompt(runner, monkeypatch):
+    def validate(ctx, param, value):
+        if value < 0:
+            raise click.BadParameter("should be positive")
+
+        return value
+
+    @click.command()
+    @click.option("-a", type=int, callback=validate, prompt=True)
+    def cli(a):
+        click.echo(a)
+
+    result = runner.invoke(cli, input="-12\n60\n")
+    assert result.output == "A: -12\nError: should be positive\nA: 60\n60\n"
+
+
+```
+
+Source block "tests/test_options.py" lines 1067-1101:
+```
+
+
+@pytest.mark.parametrize(
+    ("value", "expect_missing", "processed_value"),
+    [
+        (UNSET, True, None),
+        (None, False, None),
+        # Default type of the argument is str, so everything is processed as strings.
+        ("", False, ""),
+        ("  ", False, "  "),
+        ("foo", False, "foo"),
+        ("12", False, "12"),
+        (12, False, "12"),
+        (12.1, False, "12.1"),
+        (list(), False, "[]"),
+        (tuple(), False, "()"),
+        (set(), False, "set()"),
+        (frozenset(), False, "frozenset()"),
+        (dict(), False, "{}"),
+    ],
+)
+def test_required_option(value, expect_missing, processed_value):
+    ctx = click.Context(click.Command(""))
+    argument = click.Option(["-a"], required=True)
+
+    if expect_missing:
+        with pytest.raises(click.MissingParameter) as excinfo:
+            argument.process_value(ctx, value)
+        assert str(excinfo.value) == "Missing parameter: a"
+
+    else:
+        value = argument.process_value(ctx, value)
+        assert value == processed_value
+
+
+```
+
+Source block "tests/test_options.py" lines 1191-1193:
+```
+
+
+def test_option_help_preserve_paragraphs(runner):
+```
+
+Source block "tests/test_options.py" lines 1249-1251:
+```
+    assert "you won't see me" not in result.output
+
+
+```
+
+Source block "tests/test_options.py" lines 1286-1288:
+```
+
+
+def test_option_custom_class_reusable(runner):
+```
+
+Source block "tests/test_options.py" lines 1362-1364:
+```
+    assert not result.exception
+
+
+```
+
+Source block "tests/test_options.py" lines 1389-1433:
+```
+
+
+@pytest.mark.parametrize(
+    "option_args,expected",
+    [
+        (["--aggressive", "--all", "-a"], "aggressive"),
+        (["--first", "--second", "--third", "-a", "-b", "-c"], "first"),
+        (["--apple", "--banana", "--cantaloupe", "-a", "-b", "-c"], "apple"),
+        (["--cantaloupe", "--banana", "--apple", "-c", "-b", "-a"], "cantaloupe"),
+        (["-a", "-b", "-c"], "a"),
+        (["-c", "-b", "-a"], "c"),
+        (["-a", "--apple", "-b", "--banana", "-c", "--cantaloupe"], "apple"),
+        (["-c", "-a", "--cantaloupe", "-b", "--banana", "--apple"], "cantaloupe"),
+        (["--from", "-f", "_from"], "_from"),
+        (["--return", "-r", "_ret"], "_ret"),
+        # A name derived from an option string is lower-cased.
+        (["--Foo-Bar"], "foo_bar"),
+        (["--FOO-BAR", "-F"], "foo_bar"),
+        # An identifier declaration goes through the same transform.
+        (["--foo-bar", "-f", "explicit_name"], "explicit_name"),
+        # Underscores survive, and every dash past the prefix becomes one.
+        (["--foo__bar"], "foo__bar"),
+        (["--foo--bar"], "foo__bar"),
+        (["--_foo"], "_foo"),
+        (["--__foo"], "__foo"),
+        (["---foo"], "_foo"),
+        (["-_"], "_"),
+        # A digit is only refused in the leading position.
+        (["--foo-0"], "foo_0"),
+    ],
+)
+def test_option_names(runner, option_args, expected):
+    @click.command()
+    @click.option(*option_args, is_flag=True)
+    def cmd(**kwargs):
+        click.echo(str(kwargs[expected]))
+
+    assert cmd.params[0].name == expected
+
+    for form in option_args:
+        if form.startswith("-"):
+            result = runner.invoke(cmd, [form])
+            assert result.output == "True\n"
+
+
+```
+
+Source block "tests/test_options.py" lines 1448-1479:
+```
+
+
+def test_option_name_case_variants_share_one_parameter(runner):
+    """Case variants of one option collapse onto a single parameter."""
+
+    @click.command()
+    @click.option("--foo-bar")
+    @click.option("--Foo-Bar")
+    @click.option("--FOO-BAR")
+    def cmd(**kwargs):
+        click.echo(repr(kwargs))
+
+    assert [p.name for p in cmd.params] == ["foo_bar"] * 3
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = runner.invoke(cmd, ["--help"], catch_exceptions=False)
+
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
+    for spelling in ("--foo-bar", "--Foo-Bar", "--FOO-BAR"):
+        assert spelling in result.output
+
+    for spelling, value in (("--foo-bar", "a"), ("--Foo-Bar", "b"), ("--FOO-BAR", "c")):
+        result = runner.invoke(cmd, [spelling, value])
+        assert not result.exception
+        assert result.output == f"{{'foo_bar': {value!r}}}\n"
+
+    # Sharing one slot, the last spelling on the command line wins.
+    result = runner.invoke(cmd, ["--foo-bar", "a", "--FOO-BAR", "c"])
+    assert result.output == "{'foo_bar': 'c'}\n"
+
+
+```
+
+Source block "tests/test_options.py" lines 1535-1537:
+```
+
+
+def test_option_name_may_be_a_python_keyword(runner):
+```
+
+Source block "tests/test_options.py" lines 1705-1738:
+```
+    assert ("default:" in help) is expect
+
+
+@pytest.mark.parametrize(
+    ("args", "expect"),
+    [
+        (None, (None, None, ())),
+        (["--opt"], ("flag", None, ())),
+        (["--opt", "-a", 42], ("flag", "42", ())),
+        (["--opt", "test", "-a", 42], ("test", "42", ())),
+        (["--opt=test", "-a", 42], ("test", "42", ())),
+        (["-o"], ("flag", None, ())),
+        (["-o", "-a", 42], ("flag", "42", ())),
+        (["-o", "test", "-a", 42], ("test", "42", ())),
+        (["-otest", "-a", 42], ("test", "42", ())),
+        (["a", "b", "c"], (None, None, ("a", "b", "c"))),
+        (["--opt", "a", "b", "c"], ("a", None, ("b", "c"))),
+        (["--opt", "test"], ("test", None, ())),
+        (["-otest", "a", "b", "c"], ("test", None, ("a", "b", "c"))),
+        (["--opt=test", "a", "b", "c"], ("test", None, ("a", "b", "c"))),
+    ],
+)
+def test_option_with_optional_value(runner, args, expect):
+    @click.command()
+    @click.option("-o", "--opt", is_flag=False, flag_value="flag")
+    @click.option("-a")
+    @click.argument("b", nargs=-1)
+    def cli(opt, a, b):
+        return opt, a, b
+
+    result = runner.invoke(cli, args, standalone_mode=False, catch_exceptions=False)
+    assert result.return_value == expect
+
+
+```
+
+Source block "tests/test_options.py" lines 2100-2102:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_options.py" lines 2156-2158:
+```
+    BLUE = enum.auto()
+
+
+```
+
+Source block "tests/test_options.py" lines 2273-2275:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_options.py" lines 2317-2319:
+```
+
+
+# Any kind of sentinel value is recognized by Click as a valid flag value.
+```
+
+Source block "tests/test_options.py" lines 2425-2427:
+```
+
+
+class EngineType(enum.Enum):
+```
+
+Source block "tests/test_options.py" lines 2438-2440:
+```
+    pass
+
+
+```
+
+Source block "tests/test_options.py" lines 2843-2845:
+```
+
+
+def test_flag_value_not_stringified_for_custom_types(runner):
+```
+
+Source block "tests/test_options.py" lines 2928-2930:
+```
+    assert result.exit_code == 0
+
+
+```
+
+Source block "tests/test_options.py" lines 3675-3677:
+```
+
+
+def test_flag_group_competition_duplicate_option_name(runner):
+```
+
+Source block "tests/test_options.py" lines 3708-3710:
+```
+    assert result.exit_code == 0
+
+
+```
+
+Source block "tests/test_arguments.py" lines 59-61:
+```
+    assert result.output.splitlines() == ["name=peter id=1"]
+
+
+```
+
+Source block "tests/test_arguments.py" lines 84-86:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_arguments.py" lines 108-110:
+```
+    assert result.output == "value\n"
+
+
+```
+
+Source block "tests/test_arguments.py" lines 117-119:
+```
+
+
+PARAM_KINDS = [
+```
+
+Source block "tests/test_arguments.py" lines 189-191:
+```
+    assert built, "the sweep built no parameter, so it proves nothing"
+
+
+```
+
+Source block "tests/test_arguments.py" lines 205-207:
+```
+
+
+def test_argument_metavar_renders_what_a_declaration_may_not(runner):
+```
+
+Source block "tests/test_arguments.py" lines 241-243:
+```
+    assert cls([form.format(decl=decl)]).name == expect
+
+
+```
+
+Source block "tests/test_arguments.py" lines 255-295:
+```
+
+
+@pytest.mark.parametrize(("cls", "form"), PARAM_KINDS)
+@pytest.mark.parametrize(
+    "decl",
+    [
+        pytest.param("0foo", id="leading-digit"),
+        pytest.param("0", id="digit-only"),
+        pytest.param("foo.bar", id="dot"),
+        pytest.param("foo bar", id="space"),
+        pytest.param("\u0663foo", id="leading-arabic-indic-digit"),
+        # Separators that read as a hyphen but are not the one replaced.
+        pytest.param("foo\N{NON-BREAKING HYPHEN}bar", id="non-breaking-hyphen"),
+        pytest.param("foo\u2013bar", id="en-dash"),
+        pytest.param("foo\u2212bar", id="minus-sign"),
+        # Characters that occupy no width at all.
+        pytest.param("a\N{ZERO WIDTH SPACE}b", id="zero-width-space"),
+        pytest.param("a\N{SOFT HYPHEN}b", id="soft-hyphen"),
+        pytest.param("a\N{RIGHT-TO-LEFT OVERRIDE}b", id="right-to-left-override"),
+        # Even nothing at all, which reaches an option as a bare ``--``.
+        pytest.param("", id="empty"),
+    ],
+)
+def test_parameter_name_not_an_identifier_is_deprecated(cls, form, decl):
+    """Click 9.0 refuses every one of these; 8.6 keeps them and says so.
+
+    An exposed option is the exception, since it already refuses them.
+    """
+    spec = form.format(decl=decl)
+
+    if cls is click.Option:
+        with pytest.raises(TypeError, match="Could not determine name"):
+            cls([spec])
+        return
+
+    with pytest.warns(DeprecationWarning, match="not a valid Python identifier"):
+        param = cls([spec])
+
+    assert not param.name.isidentifier()
+
+
+```
+
+Source block "tests/test_arguments.py" lines 321-353:
+```
+
+
+@pytest.mark.parametrize(
+    ("decorator", "decl", "argv"),
+    [
+        pytest.param(click.argument, "ﬁ", ["value"], id="argument"),
+        pytest.param(click.option, "--ﬁ", ["--ﬁ", "value"], id="option"),
+    ],
+)
+def test_parameter_name_is_not_nfkc_normalized(runner, decorator, decl, argv):
+    """``str.isidentifier()`` is not the test for "can be a parameter name".
+
+    Python normalizes an identifier written in source to NFKC, so the ligature
+    "fi" compiles to the two letters. ``_parse_decls`` runs no normalization,
+    so the name keeps the ligature and only ``**kwargs`` can carry it.
+    """
+
+    @click.command()
+    @decorator(decl)
+    def cmd(**kwargs):
+        click.echo(repr(kwargs))
+
+    name = cmd.params[0].name
+    assert name == "ﬁ"
+    assert name.isidentifier()
+    assert unicodedata.normalize("NFKC", name) == "fi"
+
+    result = runner.invoke(cmd, argv)
+    assert not result.exception
+    assert result.output == "{'ﬁ': 'value'}\n"
+
+
+def test_argument_name_keeps_its_normalization_form(runner):
+```
+
+Source block "tests/test_arguments.py" lines 372-374:
+```
+    assert result.output == f"['{decomposed}', '{composed}']\n"
+
+
+```
+
+Source block "tests/test_arguments.py" lines 446-448:
+```
+
+
+def test_bytes_args(runner, monkeypatch):
+```
+
+Source block "tests/test_arguments.py" lines 533-535:
+```
+    assert not result.stderr
+
+
+```
+
+Source block "tests/test_arguments.py" lines 578-580:
+```
+
+
+def test_empty_nargs(runner):
+```
+
+Source block "tests/test_arguments.py" lines 903-905:
+```
+        click.Argument(["a"], required=True, deprecated=True)
+
+
+```
+
+Source block "tests/test_arguments.py" lines 933-935:
+```
+
+
+def test_nargs_specified_plus_star_ordering(runner):
+```
+
+Source block "tests/test_commands.py" lines 141-210:
+```
+    assert expect in result.output
+
+
+def test_custom_parser(runner):
+    import optparse
+
+    @click.group()
+    def cli():
+        pass
+
+    class OptParseCommand(click.Command):
+        def __init__(self, name, parser, callback):
+            super().__init__(name)
+            self.parser = parser
+            self.callback = callback
+
+        def parse_args(self, ctx, args):
+            try:
+                opts, args = parser.parse_args(args)
+            except Exception as e:
+                ctx.fail(str(e))
+            ctx.args = args
+            ctx.params = vars(opts)
+
+        def get_usage(self, ctx):
+            return self.parser.get_usage()
+
+        def get_help(self, ctx):
+            return self.parser.format_help()
+
+        def invoke(self, ctx):
+            ctx.invoke(self.callback, ctx.args, **ctx.params)
+
+    parser = optparse.OptionParser(usage="Usage: foo test [OPTIONS]")
+    parser.add_option(
+        "-f", "--file", dest="filename", help="write report to FILE", metavar="FILE"
+    )
+    parser.add_option(
+        "-q",
+        "--quiet",
+        action="store_false",
+        dest="verbose",
+        default=True,
+        help="don't print status messages to stdout",
+    )
+
+    def test_callback(args, filename, verbose):
+        click.echo(" ".join(args))
+        click.echo(filename)
+        click.echo(verbose)
+
+    cli.add_command(OptParseCommand("test", parser, test_callback))
+
+    result = runner.invoke(cli, ["test", "-f", "f.txt", "-q", "q1.txt", "q2.txt"])
+    assert result.exception is None
+    assert result.output.splitlines() == ["q1.txt q2.txt", "f.txt", "False"]
+
+    result = runner.invoke(cli, ["test", "--help"])
+    assert result.exception is None
+    assert result.output.splitlines() == [
+        "Usage: foo test [OPTIONS]",
+        "",
+        "Options:",
+        "  -h, --help            show this help message and exit",
+        "  -f FILE, --file=FILE  write report to FILE",
+        "  -q, --quiet           don't print status messages to stdout",
+    ]
+
+
+def test_object_propagation(runner):
+```
+
+Source block "tests/test_commands.py" lines 356-358:
+```
+    assert result.exit_code == 0
+
+
+```
+
+Source block "tests/test_commands.py" lines 420-422:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_commands.py" lines 469-471:
+```
+    assert cli.get_help_option_names(ctx) == expected
+
+
+```
+
+Source block "tests/test_commands.py" lines 555-557:
+```
+
+
+@pytest.mark.parametrize("doc", ["CLI HELP", None])
+```
+
+Source block "tests/test_commands.py" lines 597-612:
+```
+        assert deprecated in result.output
+
+
+def test_command_parse_args_collects_option_prefixes():
+    @click.command()
+    @click.option("+p", is_flag=True)
+    @click.option("!e", is_flag=True)
+    def test(p, e):
+        pass
+
+    ctx = click.Context(test)
+    test.parse_args(ctx, [])
+
+    assert ctx._opt_prefixes == {"-", "--", "+", "!"}
+
+
+```
+
+Source block "tests/test_commands.py" lines 657-659:
+```
+
+
+@pytest.mark.parametrize("exc", (EOFError, KeyboardInterrupt))
+```
+
+Source block "tests/test_types/test_IntRange.py" lines 3-5:
+```
+import click
+
+
+```
+
+Source block "tests/test_basic.py" lines 28-30:
+```
+    assert result.exit_code == 0
+
+
+```
+
+Source block "tests/test_basic.py" lines 111-113:
+```
+
+
+def test_repr():
+```
+
+Source block "tests/test_basic.py" lines 188-190:
+```
+    assert result.output == "sub"
+
+
+```
+
+Source block "tests/test_basic.py" lines 358-360:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_basic.py" lines 520-522:
+```
+    assert "exists=True" in result.output
+
+
+```
+
+Source block "tests/test_basic.py" lines 563-565:
+```
+
+
+def test_choice_argument_enum(runner):
+```
+
+Source block "tests/test_basic.py" lines 688-690:
+```
+    assert "[[%Y-%m-%d]]" not in result.output
+
+
+```
+
+Source block "tests/test_basic.py" lines 738-740:
+```
+
+
+def test_evaluation_order(runner):
+```
+
+Source block "examples/validation/validation.py" lines 3-27:
+```
+import click
+
+
+def validate_count(ctx, param, value):
+    if value < 0 or value % 2 != 0:
+        raise click.BadParameter("Should be a positive, even integer.")
+    return value
+
+
+class URL(click.ParamType[urlparse.ParseResult]):
+    name = "url"
+
+    def convert(self, value, param, ctx) -> urlparse.ParseResult:
+        if not isinstance(value, tuple):
+            value = urlparse.urlparse(value)
+            if value.scheme not in ("http", "https"):
+                self.fail(
+                    f"invalid URL scheme ({value.scheme}). Only HTTP URLs are allowed",
+                    param,
+                    ctx,
+                )
+        return value
+
+
+@click.command()
+```
+
+Source block "tests/test_types/test_FloatRange.py" lines 3-5:
+```
+import click
+
+
+```
+
+Source block "tests/test_defaults.py" lines 272-274:
+```
+    assert f"source={expected_source}" in result.output
+
+
+```
+
+Source block "tests/test_defaults.py" lines 349-351:
+```
+
+
+def test_flask_debug_env_not_stomped_by_default_flag(runner, monkeypatch):
+```
+
+Source block "tests/test_defaults.py" lines 392-394:
+```
+    assert result.output.strip() == "APP_DEBUG=0"
+
+
+```
+
+Source block "tests/test_defaults.py" lines 420-422:
+```
+
+
+def test_lookup_default_override_respected(runner):
+```
+
+Source block "tests/test_defaults.py" lines 473-475:
+```
+    pass
+
+
+```
+
+Source block "tests/test_defaults.py" lines 512-514:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_chain.py" lines 12-14:
+```
+    )
+
+
+```
+
+Source block "tests/test_chain.py" lines 86-88:
+```
+
+
+@pytest.mark.parametrize(("chain", "expect"), [(False, "1"), (True, "[]")])
+```
+
+Source block "tests/test_chain.py" lines 104-106:
+```
+    assert result.output == expect
+
+
+```
+
+Source block "tests/test_chain.py" lines 125-127:
+```
+
+
+@pytest.mark.parametrize(
+```
+
+Source block "tests/test_chain.py" lines 189-191:
+```
+    assert result.output.splitlines() == ["cli=", "a=", "b=", "c="]
+
+
+```
+
+Source block "tests/test_chain.py" lines 219-221:
+```
+
+
+@pytest.mark.xfail
+```
+
+Source block "tests/test_types/test_Choice.py" lines 1-3:
+```
+import click
+
+
+```
+
+Source block "tests/test_context.py" lines 181-183:
+```
+    assert "passes the test value" in pass_value.__doc__
+
+
+```
+
+Source block "tests/test_context.py" lines 292-294:
+```
+
+
+def test_context_pushing():
+```
+
+Source block "tests/test_context.py" lines 377-379:
+```
+    assert called == [True]
+
+
+```
+
+Source block "tests/test_context.py" lines 434-436:
+```
+
+
+def test_no_state_leaks(runner):
+```
+
+Source block "tests/test_context.py" lines 727-729:
+```
+    assert cli.main([], "test_exit_not_standalone", standalone_mode=False) == 0
+
+
+```
+
+Source block "tests/test_context.py" lines 775-777:
+```
+
+
+def test_propagate_opt_prefixes():
+```
+
+Declaration locations:
+- "src/click/parser.py"
+  _unpack_args@51-108
+  _split_opt@111-117
+  _normalize_opt@120-124
+  _Option.__init__@128-163
+  _Option.takes_value@165-167
+  _Option.process@169-182
+  _Argument.__init__@186-189
+  _Argument.process@191-213
+  _ParsingState.__init__@217-221
+  _OptionParser.__init__@241-263
+  _OptionParser.add_option@265-288
+  _OptionParser.add_argument@290-296
+  _OptionParser.parse_args@298-314
+  _OptionParser._process_args_for_args@316-325
+  _OptionParser._process_args_for_options@327-341
+  _OptionParser._match_long_opt@363-388
+  _OptionParser._match_short_opt@390-428
+  _OptionParser._get_value_from_state@430-468
+  _OptionParser._process_opts@470-500
+- "src/click/core.py"
+  iter_params_for_processing@168-192
+  Command.get_help_option_names@1203-1216
+  Command.make_parser@1252-1257
+  Command.make_context@1355-1390
+  Command.parse_args@1392-1426
+  Command.main@1511-1645
+  Group.parse_args@2034-2046
+  Group.invoke@2048-2114
+  Group.resolve_command@2116-2140
+  Parameter._check_name_is_usable@2482-2517
+  Parameter.consume_value@2586-2632
+  Parameter.type_cast_value@2634-2688
+  Parameter.value_is_missing@2690-2706
+  Parameter.process_value@2708-2772
+  Parameter.resolve_envvar_value@2774-2817
+  Parameter.value_from_envvar@2819-2833
+  Parameter.handle_parse_result@2835-2921
+  Option.__init__@3055-3131
+  Option.is_bool_flag@3133-3140
+  Option.flag_activation_value@3142-3153
+  Option._infer_flag_kind@3155-3186
+  Option._pick_type@3188-3225
+  Option._resolve_lazy_default@3227-3249
+  Option._validate@3251-3271
+  Option._check_name_is_normalized@3335-3353
+  Option._parse_decls@3355-3420
+  Option.add_to_parser@3422-3462
+  Option.resolve_envvar_value@3654-3676
+  Option.value_from_envvar@3678-3724
+  Option.consume_value@3726-3780
+  Option.process_value@3782-3797
+  Argument.add_to_parser@3904-3905
+  Possible local call Option._parse_decls -> Parameter._check_name_is_usable: lines 2482-2517; runtime dispatch not verified.
+- "src/click/types.py"
+  ParamType.__call__@151-157
+  ParamType.__call__@159-167
+  ParamType.convert@179-203
+  ParamType.split_envvar_value@205-213
+  FuncParamType.convert@275-289
+  Choice._normalized_mapping@388-404
+  Choice.normalize_choice@406-424
+  Choice.convert@454-476
+  _NumberParamTypeBase.convert@598-610
+  _NumberRangeBase.convert@666-697
+  IntRange._clamp@761-765
+  FloatRange._clamp@809-816
+  BoolParamType.str_to_bool@855-868
+  BoolParamType.convert@870-882
+  UUIDParameterType.convert@891-904
+  Tuple.convert@1289-1308
+- "tests/test_normalization.py"
+  test_option_normalization@6-15
+  test_choice_normalization@18-50
+  test_command_normalization@53-63
+- "tests/test_parser.py"
+  test_split_arg_string@8-19
+  test_parser_default_prefixes@22-24
+  test_parser_collects_prefixes@27-32
+- "tests/test_options.py"
+  test_prefixes@23-36
+  test_invalid_option@39-46
+  test_deprecated_usage@49-60
+  test_deprecated_empty_help_no_leading_space@63-74
+  test_help_spec@77-98
+  test_deprecated_warning@101-120
+  test_deprecated_required@123-125
+  test_deprecated_prompt@128-130
+  test_invalid_nargs@133-139
+  test_nargs_tup_composite_mult@142-151
+  test_counting@154-173
+  test_unknown_options@176-184
+  test_suggest_possible_options@187-200
+  test_multiple_required@203-215
+  test_good_defaults_for_multiple@218-284
+  test_bad_defaults_for_multiple@287-432
+  test_empty_envvar@435-444
+  test_multiple_envvar@447-457
+  test_envvar_container_type@460-497
+  test_boolean_flag_envvar@500-573
+  test_boolean_envvar_bad_values@576-612
+  test_multiple_default_help@615-625
+  test_show_default_default_map@628-637
+  test_show_default_container_defaults@640-656
+  test_multiple_default_type@659-665
+  test_multiple_default_composite_type@668-675
+  test_parse_multiple_default_composite_type@701-712
+  test_toupper_envvar_prefix@807-815
+  test_auto_envvar_uses_the_transformed_name@827-839
+  test_auto_envvar_ignores_decl_case@842-855
+  test_auto_envvar_prefix_is_upper_cased@858-872
+  test_auto_envvar_flattens_name_case@875-891
+  test_auto_envvar_upper_can_change_length@894-904
+  test_explicit_envvar_case_sensitivity@907-927
+  test_explicit_envvar_list_keeps_each_spelling@930-941
+  test_nargs_envvar@944-966
+  test_show_envvar@969-977
+  test_show_envvar_auto_prefix@980-988
+  test_show_envvar_auto_prefix_dash_in_command@991-1003
+  test_custom_validation@1006-1021
+  test_callback_validates_prompt@1024-1037
+  test_winstyle_options@1040-1054
+  test_legacy_options@1057-1066
+  test_required_option@1069-1099
+  test_missing_required_flag@1102-1108
+  test_missing_choice@1111-1123
+  test_missing_envvar@1126-1146
+  test_case_insensitive_choice@1149-1179
+  test_case_insensitive_choice_returned_exactly@1182-1190
+  test_option_help_preserve_paragraphs@1193-1217
+  test_option_custom_class@1236-1249
+  test_option_custom_class_can_override_type_cast_value_and_never_sees_unset@1252-1285
+  test_option_custom_class_reusable@1288-1313
+  test_help_option_custom_names_and_class@1316-1352
+  test_bool_flag_with_type@1355-1362
+  test_aliases_for_flags@1365-1388
+  test_option_names@1391-1431
+  test_option_name_case_transform_can_collide@1434-1447
+  test_option_name_case_variants_share_one_parameter@1450-1477
+  test_option_name_keeps_its_normalization_form@1480-1495
+  test_option_name_must_be_an_identifier@1498-1501
+  test_option_prompt_still_guards_against_a_nameless_option@1504-1508
+  test_option_name_check_applies_when_not_exposed@1511-1514
+  test_option_explicit_name_carries_a_refused_declaration@1517-1534
+  test_option_name_may_be_a_python_keyword@1537-1550
+  test_flag_duplicate_names@1553-1555
+  test_show_default_boolean_flag_name@1558-1573
+  test_show_true_default_boolean_flag_value@1576-1590
+  test_show_default_string@1611-1617
+  test_string_show_default_shows_custom_string_in_prompt@1620-1630
+  test_do_not_show_default_empty_multiple@1674-1682
+  test_option_with_optional_value@1708-1736
+  test_multiple_option_with_optional_value@1739-1759
+  test_type_from_flag_value@1762-1775
+  test_flag_value_and_default@1778-1887
+  test_invalid_flag_definition@1890-1909
+  test_default_dual_option_callback@1912-1974
+  test_envvar_string_flag_value@1977-2074
+  test_flag_auto_detection@2077-2099
+  test_invalid_flag_combinations@2102-2113
+  test_non_flag_with_non_negatable_default@2116-2127
+  test_choice_usage_rendering@2159-2217
+  test_choice_default_rendering@2220-2272
+  test_duplicate_names_warning@2275-2298
+  test_dual_options_custom_type_sentinel_flag_value@2320-2424
+  test_custom_type_flag_value_standalone_option@2441-2542
+  test_custom_type_flag_value_dual_options@2545-2678
+  test_callable_flag_value_not_instantiated@2681-2735
+  test_callable_flag_value_default_map@2738-2762
+  test_callable_flag_value_show_default@2765-2785
+  test_callable_flag_value_get_default_override@2788-2842
+  test_flag_value_not_stringified_for_custom_types@2845-2884
+  test_custom_type_container_flag_value@2887-2928
+  test_bool_flag_pair_default@2931-2960
+  test_bool_flag_group_competition@2963-3215
+  test_bool_flag_group_competition_with_envvar@3218-3249
+  test_bool_flag_group_competition_with_default_map@3252-3274
+  test_bool_flag_group_parameter_source@3277-3336
+  test_flag_group_competition_non_boolean@3339-3615
+  test_flag_group_unset_vs_none_vs_explicit@3618-3674
+  test_flag_group_competition_duplicate_option_name@3677-3689
+  test_argument_sharing_param_name_warning@3692-3708
+  test_options_sharing_name_no_warning@3711-3725
+  test_flag_group_competition_repeated_cmdline@3728-3748
+  test_flag_group_competition_four_flags@3751-3812
+  test_flag_group_competition_envvar_prefix_and_unset_default_map@3815-3873
+  test_flag_value_on_option_with_zero_or_one_args@3876-3916
+- "tests/test_arguments.py"
+  test_nargs_star@14-24
+  test_nargs_tup@27-38
+  test_nargs_tup_composite@41-59
+  test_nargs_mismatch_with_tuple_type@62-68
+  test_nargs_err@71-83
+  test_argument_names@86-108
+  test_argument_normalizes_an_identifier_decl@111-116
+  test_parameter_name_is_an_identifier_or_deprecated@164-189
+  test_argument_requires_its_one_declaration@192-198
+  test_argument_name_check_applies_when_not_exposed@201-204
+  test_argument_metavar_renders_what_a_declaration_may_not@207-232
+  test_parameter_name_transform@235-241
+  test_option_explicit_name_keeps_its_case@244-254
+  test_parameter_name_not_an_identifier_is_deprecated@257-293
+  test_parameter_name_identifier_check_follows_the_unicode_table@296-320
+  test_parameter_name_is_not_nfkc_normalized@323-350
+  test_argument_name_keeps_its_normalization_form@353-372
+  test_argument_name_case_transform_can_collide@375-386
+  test_argument_name_can_collide_with_an_option@389-404
+  test_argument_has_no_auto_envvar@407-419
+  test_argument_explicit_envvar_case_sensitivity@422-445
+  test_path_allow_dash@493-501
+  test_nargs_envvar@536-564
+  test_nargs_envvar_only_if_values_empty@567-577
+  test_empty_nargs@580-597
+  test_missing_arg@600-608
+  test_required_argument@611-647
+  test_argument_help@661-677
+  test_argument_help_options_only_no_arguments_section@680-690
+  test_argument_help_lists_undocumented_arguments@693-712
+  test_argument_help_undocumented_arguments_only_no_section@715-726
+  test_argument_help_deprecated_without_help_lists_all@729-746
+  test_argument_help_empty_string_lists_all@749-768
+  test_argument_get_help_record_never_none@771-783
+  test_argument_help_optional_metavar@786-795
+  test_argument_metavar_marks_optional@809-832
+  test_deprecated_usage_help_record@835-849
+  test_deprecated_usage_help_record_without_help@852-862
+  test_deprecated_empty_help_no_leading_space@865-876
+  test_deprecated_warning@879-898
+  test_deprecated_required@901-903
+  test_eat_options@906-919
+  test_nargs_star_ordering@922-932
+  test_nargs_specified_plus_star_ordering@935-945
+  test_good_defaults_for_nargs@948-989
+  test_bad_defaults_for_nargs@992-1067
+  test_argument_custom_class_can_override_type_cast_value_and_never_sees_unset@1165-1199
+- "tests/test_commands.py"
+  test_other_command_forward@24-41
+  test_forwarded_params_consistency@44-63
+  test_command_no_args_is_help@98-101
+  test_group_with_args@120-141
+  test_custom_parser@144-207
+  test_other_command_invoke_with_defaults@231-276
+  test_subcommand_metavar_marks_optional@302-326
+  test_iter_params_for_processing@359-419
+  test_get_help_option_names@422-469
+  test_help_param_priority@472-538
+  test_unprocessed_options@541-554
+  test_command_parse_args_collects_option_prefixes@600-610
+  test_group_parse_args_collects_base_option_prefixes@613-632
+  test_group_invoke_collects_used_option_prefixes@635-656
+- "tests/test_types/test_IntRange.py"
+  test_range@6-21
+  test_range_fail@24-38
+- "tests/test_basic.py"
+  test_basic_functionality@12-28
+  test_param_named_help@31-70
+  test_param_squatting_help_option_name@73-87
+  test_option_reusing_help_flag@90-110
+  test_string_option@191-213
+  test_int_option@216-236
+  test_uuid_option@239-264
+  test_float_option@267-287
+  test_boolean_switch@290-314
+  test_boolean_flag@317-337
+  test_boolean_conversion@340-357
+  test_flag_value_dual_options@360-415
+  test_file_option@418-436
+  test_file_lazy_mode@439-476
+  test_path_option@479-520
+  test_choice_option@523-541
+  test_choice_argument@544-562
+  test_choice_argument_enum@565-589
+  test_choice_argument_custom_type@592-620
+  test_choice_argument_none@623-648
+  test_choice_argument_optional_metavar@651-675
+  test_datetime_argument_optional_metavar@678-688
+  test_datetime_option_default@691-715
+  test_datetime_option_custom@718-726
+  test_required_option@729-737
+  test_evaluation_order@740-780
+  test_help_invalid_default@846-860
+  test_cast_multi_default@965-986
+- "examples/validation/validation.py"
+  validate_count@6-9
+  URL.convert@15-24
+  cli@27-48
+- "tests/test_types/test_FloatRange.py"
+  test_range@6-17
+  test_range_fail@20-31
+  test_float_range_no_clamp_open@34-42
+- "tests/test_defaults.py"
+  test_basic_defaults@11-36
+  test_multiple_defaults@39-60
+  test_multiple_flag_default@89-107
+  test_flag_default_map@110-132
+  test_shared_param_prefers_first_default@135-167
+  test_lookup_default_returns_hides_sentinel@170-200
+  test_lookup_default_callable_in_default_map@203-235
+  test_default_map_source@238-272
+  test_parameter_source_during_paramtype_convert@275-315
+  test_parameter_source_during_eager_callback@318-348
+  test_flask_debug_env_not_stomped_by_default_flag@351-392
+  test_parameter_source_on_parse_result_bypass@395-419
+  test_lookup_default_override_respected@422-467
+  test_default_map_with_callable_flag_value@476-511
+  test_default_map_nargs@514-548
+  test_unset_in_default_map@551-567
+- "tests/test_chain.py"
+  test_basic_chaining@15-34
+  test_chaining_help@37-65
+  test_chaining_with_options@68-85
+  test_no_command_result_callback@88-104
+  test_chaining_with_arguments@107-124
+  test_pipeline@127-167
+  test_args_and_chain@170-189
+  test_group_arg_behavior@192-218
+  test_group_chaining@221-245
+- "tests/test_types/test_Choice.py"
+  test_choice_get_invalid_choice_message@4-7
+- "tests/test_types/test_FuncParamType.py"
+  test_func_param_type_uses_value_error_message@6-22
+- "tests/test_context.py"
+  test_hiding_of_unset_sentinel_in_callbacks@184-291
+  test_close_before_pop@336-354
+  test_close_before_exit@357-377
+  test_multiple_eager_callbacks@380-433
+  test_no_state_leaks@436-519
+  test_propagate_show_default_setting@700-711
+  test_parameter_source@730-774
+  test_propagate_opt_prefixes@777-782
+- "tests/test_types/test_Path.py"
+  test_path_dash_no_byteswarning@14-34
+  test_path_resolve_symlink@50-73
+  test_path_surrogates@87-144
+  test_invalid_path_with_esc_sequence@158-166
+  test_path_type@169-186
+- "tests/test_termui.py"
+  test_prompt_required_with_required@1317-1333
+  test_prompt_required_false@1336-1365
+  test_flag_value_prompt@1672-1728
+- "docs/shell-completion.md"
+
+End context.

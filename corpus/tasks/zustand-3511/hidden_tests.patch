@@ -1,0 +1,33 @@
+diff --git a/tests/middlewareTypes.test.tsx b/tests/middlewareTypes.test.tsx
+index ec941ffae5589fc5c6b861a3678fd96da004f346..e0add0f71cc983a3e4390e53bea2173d2b05622e 100644
+--- a/tests/middlewareTypes.test.tsx
++++ b/tests/middlewareTypes.test.tsx
+@@ -198,6 +198,28 @@ describe('counter state spec (single middleware)', () => {
+     expect(useStoreD).toBeDefined()
+   })
+ 
++  it('devtools #3510', () => {
++    type MyState = {
++      count: number
++      inc: () => void
++    }
++
++    const useBoundStore = create<MyState>()(
++      devtools((set, get) => ({
++        count: 0,
++        inc: () => {
++          set({ count: get().count + 1 }, false, 'inc')
++          // @ts-expect-error `get` should be inferred as `MyState`.
++          void get().foo
++          // @ts-expect-error `set` should enforce `count` as number.
++          set({ count: '1' })
++        },
++      })),
++    )
++
++    expect(useBoundStore).toBeDefined()
++  })
++
+   it('subscribeWithSelector', () => {
+     const useBoundStore = create<CounterState>()(
+       subscribeWithSelector((set, get) => ({

@@ -1,0 +1,44 @@
+task_id: requests-7395
+repo_id: psf__requests
+base_sha: 6ec76b4a36fba4a32fb72f5f9ba04e632635e477
+gold_sha: 27e0981962d355b9532256f4dcb3d42f64b04d9c
+fix_ref: https://github.com/psf/requests/pull/7395
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Typos. Preserve the established
+  public API and behavior outside that case.'
+changed_files: &id001
+- src/requests/adapters.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/requests-7395/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_requests.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/psf__requests/uv
+expected_test_seconds: 30.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/requests-7395/gold.patch
+  sha256: da935ab7af8f80cb90451fd5bd160abdcb39fe2910f43d5aa74efbdc96795fc3
+  role: evaluator-gold-patch
+- path: tasks/requests-7395/hidden_tests.patch
+  sha256: 2cfeec74943e48c689581cf83730c91d0d88b6de90761b6ecf9400949673f8a7
+  role: evaluator-hidden-tests
+- path: tasks/requests-7395/admission.json
+  sha256: cdb6de578bef388e019c11eb195888d01795aa5676d48ca46981f6bdc8c39601
+  role: admission-evidence
+- path: tasks/requests-7395/sanitization.md
+  sha256: c9634d707216149cde17da3eb305ae38a43ac6c5c50527be76dd853d34298d31
+  role: sanitization-review
+- path: tasks/requests-7395/gold-evidence.json
+  sha256: 65c0690f30ea21c7e3095eaecd2107729161cfb2ce045b1ee683cb34e0c3a56e
+  role: evaluator-gold-evidence

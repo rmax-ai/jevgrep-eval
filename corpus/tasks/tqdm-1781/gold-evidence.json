@@ -1,0 +1,1 @@
+{"files":["tqdm/std.py"],"gold_patch_sha256":"f7e27d786b8bd5fff8b81457d4d1e18f309074e48a82f6abd63ad33aedf218a4","gold_sha":"93370ff891582e458c40196ea78a1a9d720fbb45","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"tqdm-1781"}

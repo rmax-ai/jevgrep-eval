@@ -1,0 +1,1 @@
+{"files":["src/jinja2/environment.py"],"gold_patch_sha256":"cb3cac9bac7b3183d7d5bc320e3e380d4b6be8ba2a11258ed2d528bc5423b819","gold_sha":"b4b28ec01c60b8753ab53fe60b10d7dbaa55842b","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"jinja-2061"}

@@ -1,0 +1,1 @@
+{"files":["tomlkit/items.py"],"gold_patch_sha256":"4c0a82076d14b2441430260e57f270dc99a9cf0ec27e81706f318089e445b0df","gold_sha":"8cd44f58b499da3c80a29bc877a512665a15e0bb","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"tomlkit-551"}

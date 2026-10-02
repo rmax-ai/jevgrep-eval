@@ -1,0 +1,1 @@
+{"files":["src/pluggy/_hooks.py","src/pluggy/_manager.py"],"gold_patch_sha256":"66d4b28ec91649ff080f620e5c2e9d70a7112a2fb402d97f71bded59c811afd5","gold_sha":"20d8143f127a4d7526dbbea441857b4b80ec8bdd","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"pluggy-646"}

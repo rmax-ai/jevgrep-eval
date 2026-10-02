@@ -14,8 +14,11 @@ build/
 
 # Round working dirs (never commit)
 .staging/
+corpus/.cache/
+corpus/.staging/
 runs/
 workspaces/
 cache/
 state/
+*.local.yaml
 *.tmp-*

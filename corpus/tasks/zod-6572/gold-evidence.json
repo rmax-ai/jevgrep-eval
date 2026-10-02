@@ -1,0 +1,1 @@
+{"files":["packages/zod/src/v4/core/memoizer.ts"],"gold_patch_sha256":"4ef632bb3791d71c1b3dc30597c507391338958e3eeed25d16da2d359fb11e00","gold_sha":"36f17960d1defca5d0896d9424f4e1059fbbf081","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"zod-6572"}

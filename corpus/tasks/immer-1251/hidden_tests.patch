@@ -1,0 +1,17 @@
+diff --git a/__tests__/patch.js b/__tests__/patch.js
+index c7dbeaf6b3bcd8fe64490bcc19b19ac2805c33ee..7e26cb4188211de19848848860258da8d9582a77 100644
+--- a/__tests__/patch.js
++++ b/__tests__/patch.js
+@@ -1596,3 +1596,12 @@ describe("RTK-5159: Patch path truncation bug", () => {
+ 		expect(patches[0].path).toEqual(["queries", "queryKey", "data", "items", 1])
+ 	})
+ })
++test("applyPatches throws proper immer error when intermediate path value is null", () => {
++	// isObjectish(null) === true (typeof null === "object"), so the null check
++	// inside applyPatches_ was missing; navigating into null threw a native
++	// TypeError instead of immer's own "path doesn't resolve" error.
++	const isProd = process.env.NODE_ENV === "production"
++	expect(() => {
++		applyPatches({a: null}, [{op: "add", path: ["a", "b"], value: 1}])
++	}).toThrow(isProd ? "18" : "Cannot apply patch, path doesn't resolve: a/b")
++})

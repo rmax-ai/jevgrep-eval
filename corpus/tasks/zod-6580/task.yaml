@@ -1,0 +1,49 @@
+task_id: zod-6580
+repo_id: colinhacks__zod
+base_sha: 574d480fb443d3fd396efbcb8230f3dfee4a2cd2
+gold_sha: dd9c36fa2ddcee79f71d19f9635586c7b65ead86
+fix_ref: https://github.com/colinhacks/zod/pull/6580
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Defer recursive object
+  index inference. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- packages/zod/src/v4/core/schemas.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zod-6580/hidden_tests.patch
+test_runner: vitest
+test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/recursive-types.test.ts
+- packages/zod/src/v4/mini/tests/recursive-types.test.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/colinhacks__zod/pnpm-store
+expected_test_seconds: 60.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/zod-6580/gold.patch
+  sha256: e2f7c9abc796122845cf6036c001a6b31d58111d7023969f6bd27826e43068b0
+  role: evaluator-gold-patch
+- path: tasks/zod-6580/hidden_tests.patch
+  sha256: 47e87756ef86ab69f6bc6acbeb9a393aaf54f55df063b92b2105e79fc978e5f4
+  role: evaluator-hidden-tests
+- path: tasks/zod-6580/admission.json
+  sha256: 77ae9d0795fc2faafc5c2222a3c78e389e83ba2c8d716ee661cd044af8aa1cdc
+  role: admission-evidence
+- path: tasks/zod-6580/sanitization.md
+  sha256: 00e590ed8a833126c9ca15d6e539f89e4cda3388ed8137904598fb8fbe3e5078
+  role: sanitization-review
+- path: tasks/zod-6580/gold-evidence.json
+  sha256: ea89727d420242521fdcdfb928fdf0d298bf9858281c14a32fca6e6777c4fb18
+  role: evaluator-gold-evidence
+hidden_test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/recursive-types.test.ts
+- packages/zod/src/v4/mini/tests/recursive-types.test.ts

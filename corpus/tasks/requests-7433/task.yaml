@@ -1,0 +1,45 @@
+task_id: requests-7433
+repo_id: psf__requests
+base_sha: 0b401c76b6e80a4eecf3c690085b2553f6e261ca
+gold_sha: 6404f345e562d962abe6700a1c357ec1e7e18232
+fix_ref: https://github.com/psf/requests/pull/7433
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: `prepare_body` stream detection
+  for `__getattr__`-based file wrappers. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/requests/models.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/requests-7433/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_requests.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/psf__requests/uv
+expected_test_seconds: 30.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/requests-7433/gold.patch
+  sha256: 6bde5d12580d86dee7a57aa09784fd00b5879d1ce24f8f78b43f9a72f79b64fe
+  role: evaluator-gold-patch
+- path: tasks/requests-7433/hidden_tests.patch
+  sha256: a676733cdf70fa1abdda3661dcfbb7b16993df620f1a4d2ae8a4a437eaf9f432
+  role: evaluator-hidden-tests
+- path: tasks/requests-7433/admission.json
+  sha256: 06898e70301d14cb9d537d504552f4b433c0174af2dfc497d2daab43b3302ccc
+  role: admission-evidence
+- path: tasks/requests-7433/sanitization.md
+  sha256: e885570c541323e4a07412d07cdaff9ec72234556079b475c0b475f62bcc683a
+  role: sanitization-review
+- path: tasks/requests-7433/gold-evidence.json
+  sha256: bd0fd3f720a44b41d75de587b0efbdcf849ef08a4c42834ca88cf235f35262c9
+  role: evaluator-gold-evidence

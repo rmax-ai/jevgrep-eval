@@ -1,0 +1,35 @@
+diff --git a/tests/tests_concurrent.py b/tests/tests_concurrent.py
+index 33fa85e99232a0c94efd7f16103567e134668a1a..73d84d4e0000ebcdddab2939e6674599c89be4e1 100644
+--- a/tests/tests_concurrent.py
++++ b/tests/tests_concurrent.py
+@@ -11,6 +11,12 @@ def dummy_func(x):
+     return x + 1
+ 
+ 
++def test_min_map_len():
++    assert concurrent._min_map_len([]) == 0
++    assert concurrent._min_map_len([(i for i in range(9))]) == 0
++    assert concurrent._min_map_len([(i for i in range(9)), range(5)]) == 5
++
++
+ @mark.parametrize("mapper", [interpreter_map, process_map, thread_map])
+ def test_concurrent_map(mapper, caperr):
+     a = range(9)
+@@ -23,6 +29,17 @@ def test_concurrent_map(mapper, caperr):
+     assert '0/9' in err
+ 
+ 
++@mark.parametrize("mapper", [interpreter_map, process_map, thread_map])
++def test_concurrent_map_unknown_len(mapper, caperr):
++    b = [i + 1 for i in range(9)]
++    try:
++        assert mapper(dummy_func, (i for i in range(9))) == b
++    except ImportError as err:
++        skip(str(err))
++    err = caperr()
++    assert '9it [' in err
++
++
+ def check_lock(args):
+     """Check that another interpreter cannot acquire a held tqdm lock"""
+     from os.path import exists

@@ -1,0 +1,1 @@
+{"files":["src/middleware/persist.ts"],"gold_patch_sha256":"e2fd963f5ec29e2894d1cebbe5d430e4f77746a6c49a633f5213025cee8cf4a2","gold_sha":"3febf8c6d4f6670f886cc6b628b01a128d2888bd","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"zustand-3555"}

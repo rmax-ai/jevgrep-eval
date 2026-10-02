@@ -1,0 +1,47 @@
+task_id: ky-880
+repo_id: sindresorhus__ky
+base_sha: 294fe63be57d73bda18194b7e23ab7225c054643
+gold_sha: 0bda554d448c1b57c17a5c18114432c02465d467
+fix_ref: https://github.com/sindresorhus/ky/pull/880
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: `signal` replacement when
+  extending instances. Preserve the established public API and behavior outside that
+  case.'
+changed_files: &id001
+- source/types/ky.ts
+- source/utils/merge.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/ky-880/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- test/main.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/sindresorhus__ky/pnpm-store
+expected_test_seconds: 60.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/ky-880/gold.patch
+  sha256: 038f8ebc22ebeb725cff35421d0ab6c797397528b2eb9f8705cc5c2bd0fff1a1
+  role: evaluator-gold-patch
+- path: tasks/ky-880/hidden_tests.patch
+  sha256: a88dac152ea15ad2f834d172dd73439b44dd792fb3455b9ca752e28d978cec0e
+  role: evaluator-hidden-tests
+- path: tasks/ky-880/admission.json
+  sha256: 24d087471faa020e49613a3884472872274a01de9469817e7f333f0700a39ac6
+  role: admission-evidence
+- path: tasks/ky-880/sanitization.md
+  sha256: 0834097b5cd2c6f2f1e1bfeedf31008adb1bcb9176a8df6376d045f251d24e74
+  role: sanitization-review
+- path: tasks/ky-880/gold-evidence.json
+  sha256: 3d90e5441a5607d336730eebcda9dc43f2dd314ae340713350afdb876a85d9c0
+  role: evaluator-gold-evidence

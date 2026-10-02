@@ -1,0 +1,5 @@
+{"type":"session_start","session_id":"fixture-session"}
+{"type":"tool_call","seq":0,"command":"rg parse src","ts_offset_ms":1,"files_touched":["src/app.py"],"result":{"matched":true}}
+{"type":"tool_call","seq":1,"command":"cat src/app.py","ts_offset_ms":2,"files_touched":["src/app.py"],"result":{"summary":"protocol demonstration: simulated-fixture","tokens_returned":4}}
+{"type":"token_count","input_tokens":4}
+{"type":"session_end","session_id":"fixture-session"}

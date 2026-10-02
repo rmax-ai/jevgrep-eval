@@ -1,0 +1,51 @@
+task_id: click-3764
+repo_id: pallets__click
+base_sha: 150d1071d69c5cdad7de78590013ffe56cf9e3bb
+gold_sha: fc5c7f45da0a4443f60ba2d322fe4bf829977739
+fix_ref: https://github.com/pallets/click/pull/3764
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Error reporting on Windows
+  when an error is raised in the pager. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/click/_termui_impl.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/click-3764/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_context.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__click/uv
+expected_test_seconds: 30.0
+stratum: test-discovery
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/click-3764/gold.patch
+  sha256: db1762d8e6d2e3939ae5fac538e12db6210e1ef36506901ee2ef7e0a1e04a282
+  role: evaluator-gold-patch
+- path: tasks/click-3764/hidden_tests.patch
+  sha256: d308c1f267f7df34e9b4b2f53020af701202259f4bbca8d243d4445bc7f10ae2
+  role: evaluator-hidden-tests
+- path: tasks/click-3764/admission.json
+  sha256: b165d4d98986339138dc05426c4d7cfdf549f7481d60c8568b80036629a20dc0
+  role: admission-evidence
+- path: tasks/click-3764/sanitization.md
+  sha256: 638ec8dd5f53e2c6e9691068c35174f5d9ae69d4a4ce45657a771d2cd7f05491
+  role: sanitization-review
+- path: tasks/click-3764/gold-evidence.json
+  sha256: c1627043fe5736a8114e5874611b467ddff3f695bfd41c14364ff43a9fef6513
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_termui.py

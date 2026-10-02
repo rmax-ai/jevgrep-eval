@@ -1,0 +1,10 @@
+[non-jg:probe] rc=0
+  stdout: arm-isolation: OK jg unresolved; credentials absent
+[non-jg:codex-version] rc=0
+  stdout: codex-cli 0.157.1
+[jg:probe] rc=0
+  stdout: arm-isolation: OK jg resolvable; credentials present
+PASS non-jg:probe: jg absent in non-jg arm
+PASS non-jg:codex-version: minimal runtime executes codex (codex-cli 0.157.1)
+PASS jg:probe: jg present in jg arm
+PROBE-RESULT: ALL PASS

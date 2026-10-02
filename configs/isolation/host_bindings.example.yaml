@@ -1,0 +1,9 @@
+# Host bindings — EXAMPLE (copy to host_bindings.local.yaml and fill real paths).
+# The agent-run sandbox resolves these placeholders at run time. The .local file is
+# gitignored: it contains host-specific absolute paths and is never committed.
+home: "<home>"                     # user home on the run host
+tools: "<home>/.local/share/opencode/bin"   # provides rg (ripgrep 14.x)
+uv: "<home>/.local/share/uv"       # uv-managed python installs (cpython-3.12 alias + real)
+node: "<home>/.local/share/mise/installs/node/24.13.0"  # node toolchain (codex, jg)
+codex_home_source: "<home>/.codex"  # auth.json source for per-run CODEX_HOME
+provider_credentials: "<home>/.config/jevgrep"  # read-only; jg provider credentials

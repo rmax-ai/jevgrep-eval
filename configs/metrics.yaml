@@ -1,0 +1,29 @@
+metrics:
+  - name: task_success
+    population: attempted task runs
+    numerator: successful evaluations
+    denominator: attempted task runs
+    source: evaluator
+    missing_data_rule: missing evaluation is unsuccessful
+    interpretation: primary correctness outcome
+  - name: hit_at_k
+    population: retrieval queries with nonempty base-present reference
+    numerator: queries with a reference file in first K unique files
+    denominator: eligible retrieval queries
+    source: retrieval
+    missing_data_rule: empty/base-absent reference is NA
+    interpretation: exploratory retrieval diagnostic
+  - name: recall_at_k
+    population: retrieval queries with nonempty base-present reference
+    numerator: unique reference files returned in first K
+    denominator: unique base-present reference files
+    source: retrieval
+    missing_data_rule: empty/base-absent reference is NA
+    interpretation: exploratory retrieval diagnostic
+  - name: mrr
+    population: retrieval queries with nonempty base-present reference
+    numerator: reciprocal rank of first unique reference file
+    denominator: one per eligible query
+    source: retrieval
+    missing_data_rule: empty/base-absent reference is NA; complete miss is zero
+    interpretation: exploratory retrieval diagnostic

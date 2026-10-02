@@ -1,0 +1,1 @@
+{"files":["src/attr/validators.py"],"gold_patch_sha256":"0165425fad66d27906f3af8c3fdfb2fdd6017555cc0451c7cd7d18991dbf4d03","gold_sha":"af9c510912ce604a94896cc35c27368d5baf6ae6","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"attrs-1513"}

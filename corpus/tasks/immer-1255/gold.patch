@@ -1,0 +1,62 @@
+diff --git a/src/core/proxy.ts b/src/core/proxy.ts
+index bd98e276cc99ff5c7bae14e4917f1a18c2b0cacb..70e95ad56fd00776c7f4a60818cb1350bbe8ee46 100644
+--- a/src/core/proxy.ts
++++ b/src/core/proxy.ts
+@@ -44,6 +44,7 @@ export interface ProxyArrayState extends ProxyBaseState {
+ 	draft_: Drafted<AnyArray, ProxyArrayState>
+ 	operationMethod?: string
+ 	allIndicesReassigned_?: boolean
++	baseRefs_?: Set<any>
+ }
+ 
+ type ProxyState = ProxyObjectState | ProxyArrayState
+@@ -146,7 +147,10 @@ export const objectTraps: ProxyHandler<ProxyState> = {
+ 		}
+ 		// Check for existing draft in modified state.
+ 		// Assigned values are never drafted. This catches any drafts we created, too.
+-		if (value === peek(state.base_, prop)) {
++		if (
++			value === peek(state.base_, prop) ||
++			isRelocatedBaseRef(state, prop, value)
++		) {
+ 			prepareCopy(state)
+ 			// Ensure array keys are always numbers
+ 			const childKey = state.type_ === ArchType.Array ? +(prop as string) : prop
+@@ -288,6 +292,25 @@ function peek(draft: Drafted, prop: PropertyKey) {
+ 	return source[prop]
+ }
+ 
++// Reordering array methods (reverse, sort) from the array-methods plugin run
++// natively on `copy_`, which still holds raw base references. This relocates an
++// un-drafted base object to a position where it no longer matches `base_[prop]`,
++// so the normal positional check above misses it and the get trap would hand back
++// the raw base object, breaking the guarantee that the base state is never mutated.
++// Detect such a relocated base reference so it is drafted before being exposed.
++function isRelocatedBaseRef(state: ImmerState, prop: PropertyKey, value: any) {
++	if (
++		state.type_ !== ArchType.Array ||
++		!(state as ProxyArrayState).allIndicesReassigned_ ||
++		state.assigned_?.get(prop) ||
++		!isDraftable(value) ||
++		value[DRAFT_STATE]
++	) {
++		return false
++	}
++	return (state as ProxyArrayState).baseRefs_!.has(value)
++}
++
+ function readPropFromProto(state: ImmerState, source: any, prop: PropertyKey) {
+ 	const desc = getDescriptorFromProto(source, prop)
+ 	return desc
+diff --git a/src/plugins/arrayMethods.ts b/src/plugins/arrayMethods.ts
+index 7c4cb7f72f057e366ef523e937381a49effd6011..a4d3d019399be6365fd90237c68f6ddeba956ec5 100644
+--- a/src/plugins/arrayMethods.ts
++++ b/src/plugins/arrayMethods.ts
+@@ -181,6 +181,7 @@ export function enableArrayMethods() {
+ 
+ 	function markAllIndicesReassigned(state: ProxyArrayState) {
+ 		state.allIndicesReassigned_ = true
++		state.baseRefs_ = new Set(state.base_)
+ 	}
+ 
+ 	function normalizeSliceIndex(index: number, length: number): number {

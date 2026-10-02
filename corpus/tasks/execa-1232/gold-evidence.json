@@ -1,0 +1,1 @@
+{"files":["lib/stdio/handle.js"],"gold_patch_sha256":"12ce0ae0a7ce18fba22c8111d83d1d389cf0acae6c6ed8d2fb4c1d15441c4715","gold_sha":"3ed0544b697fea99a367869a80a69589c026c4a8","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"execa-1232"}

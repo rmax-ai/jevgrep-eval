@@ -1,0 +1,19 @@
+tier: B
+unshare_net: false
+unshare_user: true
+readonly_binds: [/usr/lib, /lib, /usr/local/lib]
+# Base toolchain — same validated set as Tier A (V4 2026-09-29).
+binaries: [/usr/bin/grep, /usr/bin/find, /usr/bin/sed, /usr/bin/awk, /usr/bin/mawk,
+           /usr/bin/cat, /usr/bin/head, /usr/bin/tail, /usr/bin/ls, /usr/bin/wc,
+           /usr/bin/python3, /usr/bin/python3.13, /usr/bin/bash, /usr/bin/env, /usr/bin/id]
+# Host bindings — placeholders resolved by the run host's harness. Tier B adds provider
+# reachability: the jg/node toolchain, DNS/TLS configuration, and read-only credentials.
+host_bindings:
+  ripgrep: "<tools>/rg"
+  uv_python_alias: "<uv>/python/cpython-3.12-linux-aarch64-gnu"
+  uv_python_real: "<uv>/python/cpython-3.12.13-linux-aarch64-gnu"
+  workspace_venv: "<workspace>/.venv"
+  node_toolchain: "<node>"                             # bin+lib; jg-declaring arms get the whole tree; other arms get the node runtime + codex package only (2026-10-02)
+  provider_credentials: "<home>/.config/jevgrep"       # read-only; sandbox HOME
+  etc: [/etc/resolv.conf, /etc/nsswitch.conf, /etc/hosts, /etc/ssl]
+validation: "V4 2026-09-29 PASS — jg doctor green in-sandbox (metered); 2026-10-02 arm-scope PASS — jg toolchain/credentials/provider-domain limited to retrieval_tools:[jg] arms (dq#117 review fold; reports/arm-isolation-probe-20261002.txt)"

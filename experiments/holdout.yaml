@@ -1,0 +1,28 @@
+# dq#117 holdout experiment — DRAFT (finalize digests at corpus freeze)
+experiment: holdout
+protocol_id: v1
+status: draft
+conditions: [a0, a1, a3]
+tasks:
+  source: corpus/holdout
+  task_limit: 24
+repetitions: 2
+agent:
+  harness: codex
+  model: gpt-6-luna
+  effort: max
+  isolation: tier_b          # agent-run tier (provider network allowed; FS minimized; V4/V4b-validated)
+retrieval:
+  jg:
+    binary: "@dzhng/jevgrep@0.4.3"
+    provider: vercel
+  bm25:
+    index: deterministic-v1  # src/jevgrep_eval/retrieval
+budget:
+  stage: stage_3_holdout
+  jg_rate_usd_per_search: "0.048"   # LIVE-MEASURED (V6 ; gateway /v1/credits delta)
+  jg_reserved_searches_per_run: 6
+digests:
+  corpus_manifest: ""        # fill at freeze
+  selection_log: ""
+  pricing: ""                # configs/pricing/pricing.yaml snapshot

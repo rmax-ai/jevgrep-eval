@@ -1,0 +1,26 @@
+diff --git a/src/jinja2/environment.py b/src/jinja2/environment.py
+index f062e40740d44098aa5b1dcfeab1cde04c173cc6..821971779660e24001c5997236368fd878512f7a 100644
+--- a/src/jinja2/environment.py
++++ b/src/jinja2/environment.py
+@@ -406,7 +406,7 @@ class Environment:
+         cache_size: int = missing,
+         auto_reload: bool = missing,
+         bytecode_cache: t.Optional["BytecodeCache"] = missing,
+-        enable_async: bool = False,
++        enable_async: bool = missing,
+     ) -> "Environment":
+         """Create a new overlay environment that shares all the data with the
+         current environment except for cache and the overridden attributes.
+@@ -419,8 +419,11 @@ class Environment:
+         copied over so modifications on the original environment may not shine
+         through.
+ 
++        .. versionchanged:: 3.1.5
++            ``enable_async`` is applied correctly.
++
+         .. versionchanged:: 3.1.2
+-            Added the ``newline_sequence``,, ``keep_trailing_newline``,
++            Added the ``newline_sequence``, ``keep_trailing_newline``,
+             and ``enable_async`` parameters to match ``__init__``.
+         """
+         args = dict(locals())
