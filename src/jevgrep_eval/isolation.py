@@ -5,6 +5,14 @@ connectivity-fail, deny-read, Python test execution inside Tier A, group-kill
 quiescence, and Tier-B provider reachability all pass (evidence: ops records +
 `configs/isolation/tier_*.yaml` validation lines). This module generates
 recipes and records probe scripts; it does not execute them at runtime.
+
+Arm scoping (2026-10-02, dq#117 review fold): the Jevgrep capability — the
+jg executable, the node toolchain, the provider credentials, and the
+provider-domain egress allowlist — is materialized only for arms that
+declare `retrieval_tools: [jg]`; other arms receive only the node runtime
+and the Codex package needed to execute the agent.
+`arm_isolation_probe_script()` records the in-sandbox assertions for either
+variant.
 """
 
 from __future__ import annotations
@@ -135,8 +143,15 @@ def agent_bwrap_argv(
     engine_venv: Path,
     bm25_tool: Path | None = None,
     bm25_index: Path | None = None,
+    jg_enabled: bool = False,
 ) -> list[str]:
-    """Assemble the validated Tier-B agent command without executing it."""
+    """Assemble the validated Tier-B agent command without executing it.
+
+    The Jevgrep capability is arm-scoped: only ``jg_enabled`` arms get the
+    full node toolchain plus the provider-credentials mount. Other arms
+    receive just the node runtime and the Codex package that executes the
+    agent, so ``jg`` (and the rest of the toolchain) cannot resolve or run.
+    """
     workspace_path = _absolute_path(workspace, "workspace")
     codex_home_path = _absolute_path(codex_home, "codex_home")
     engine_repo_path = _absolute_path(engine_repo, "engine_repo")
@@ -209,10 +224,36 @@ def agent_bwrap_argv(
         (f"{tools}/rg", f"{tools}/rg"),
         (f"{uv}/python/cpython-3.12-linux-aarch64-gnu", f"{uv}/python/cpython-3.12-linux-aarch64-gnu"),
         (f"{uv}/python/cpython-3.12.13-linux-aarch64-gnu", f"{uv}/python/cpython-3.12.13-linux-aarch64-gnu"),
-        (node, node),
     ]
+    if jg_enabled:
+        # Full toolchain: this arm declares the Jevgrep retrieval capability.
+        mounts.append((node, node))
+    else:
+        # Minimal executor runtime: the agent entrypoint needs only the node
+        # binary and its Codex package. The Jevgrep package tree stays outside
+        # the mount set, so `jg` cannot resolve or execute in this arm.
+        mounts.extend(
+            (
+                (f"{node}/bin/node", f"{node}/bin/node"),
+                (
+                    f"{node}/lib/node_modules/@openai/codex",
+                    f"{node}/lib/node_modules/@openai/codex",
+                ),
+            )
+        )
     for source, target in sorted(mounts, key=lambda pair: pair[1]):
         _ro_bind(argv, source, target)
+
+    if not jg_enabled:
+        # Recreate the Codex entrypoint symlink for the minimal runtime; the
+        # link target keeps node module resolution anchored to the real package.
+        argv.extend(
+            [
+                "--symlink",
+                "../lib/node_modules/@openai/codex/bin/codex.js",
+                f"{node}/bin/codex",
+            ]
+        )
 
     argv.extend(
         [
@@ -226,8 +267,10 @@ def agent_bwrap_argv(
             "/workspace",
             "--setenv",
             "PATH",
-            # /usr/local/bin carries the optional bm25 shim bind; keep the env
-            # uniform across arms (a missing dir on PATH is harmless).
+            # /usr/local/bin carries the optional bm25 shim bind; the PATH
+            # string is uniform across arms, while {node}/bin resolves to the
+            # arm-scoped toolchain view (full tree for jg arms; node + codex
+            # only otherwise), so jg resolves exactly where it is declared.
             f"{node}/bin:/usr/local/bin:/workspace/.venv/bin:/usr/bin:/bin",
             "--setenv",
             "HOME",
@@ -243,7 +286,8 @@ def agent_bwrap_argv(
             "dumb",
         ]
     )
-    _ro_bind(argv, resolved["provider_credentials"], "/codex-home/.config/jevgrep")
+    if jg_enabled:
+        _ro_bind(argv, resolved["provider_credentials"], "/codex-home/.config/jevgrep")
     if bm25_tool is not None and bm25_index is not None:
         bm25_tool_path = _absolute_path(bm25_tool, "bm25_tool")
         bm25_index_path = _absolute_path(bm25_index, "bm25_index")
@@ -339,6 +383,38 @@ def probe_artifacts(tier: str) -> tuple[ProbeArtifact, ...]:
             ProbeArtifact("negative-connectivity", negative_connectivity_probe_script(), normalized_tier)
         )
     return tuple(artifacts)
+
+
+def arm_isolation_probe_script(*, jg_enabled: bool) -> str:
+    """Record the in-sandbox arm-isolation assertions for one arm variant.
+
+    A protocol probe artifact: the caller may execute it inside the generated
+    sandbox (bash is mounted) and record stdout/rc; the engine itself does not
+    execute it at runtime.
+    """
+    if jg_enabled:
+        return (
+            "# protocol probe artifact; result is recorded, not executed by the engine\n"
+            "# arm-isolation (Jevgrep arm): the declared capability must be present\n"
+            "if ! command -v jg >/dev/null 2>&1; then\n"
+            "  echo 'arm-isolation: FAIL jg not resolvable'; exit 1\n"
+            "fi\n"
+            "if [ ! -e /codex-home/.config/jevgrep/credentials.json ]; then\n"
+            "  echo 'arm-isolation: FAIL credentials missing'; exit 1\n"
+            "fi\n"
+            "echo 'arm-isolation: OK jg resolvable; credentials present'\n"
+        )
+    return (
+        "# protocol probe artifact; result is recorded, not executed by the engine\n"
+        "# arm-isolation (non-Jevgrep arm): the capability must be absent\n"
+        "if command -v jg >/dev/null 2>&1; then\n"
+        "  echo 'arm-isolation: FAIL jg resolvable'; exit 1\n"
+        "fi\n"
+        "if [ -e /codex-home/.config/jevgrep/credentials.json ]; then\n"
+        "  echo 'arm-isolation: FAIL credentials present'; exit 1\n"
+        "fi\n"
+        "echo 'arm-isolation: OK jg unresolved; credentials absent'\n"
+    )
 
 
 def deny_read_probe(path: Path) -> ProbeResult:

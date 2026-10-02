@@ -14,15 +14,28 @@ filesystem minimization and deny-read probes.
 
 **Agent web lookup (closed 2026-09-29, probe-verified).** The a0 smoke showed
 the agent retrieving the upstream fix over the web (provider web-search MCP
-tool), which would contaminate repository-retrieval measurement. The capability
-set is now uniform across arms: provider-side web search disabled, apps /
-browser / computer-use features off, and sandboxed command egress routed
-through the managed network proxy with a single allowlisted host — the frozen
-Jevgrep provider gateway. Live verification: (1) `curl https://api.github.com`
+tool), which would contaminate repository-retrieval measurement. Provider-side
+web search is disabled and apps / browser / computer-use features are off for
+every arm, and sandboxed command egress is routed through the managed network
+proxy. Live verification (2026-09-29): (1) `curl https://api.github.com`
 → proxy 403 "domain is not on the allowlist"; (2) the same curl with
 `--noproxy '*'` → DNS failure (no resolver outside the proxy); (3)
 `getent hosts` → rc=2; (4) `curl https://ai-gateway.vercel.sh/` → HTTP 308
 through the proxy. Direct egress is impossible, not merely discouraged.
+
+**Arm-scoped Jevgrep exposure (2026-10-02, dq#117 review fold).** The Jevgrep
+capability is declared per arm (`retrieval_tools: [jg]`) and is now
+materialized per arm. Only jg-declaring arms receive the jg executable and the
+rest of the node toolchain, the read-only provider-credentials mount
+(`/codex-home/.config/jevgrep`), and the provider-domain egress allowlist.
+Every other arm receives only the node runtime plus the Codex package that
+executes the agent: `jg` does not resolve, no part of the `@dzhng/jevgrep`
+package tree is mounted, credentials are absent, and the proxy carries no
+domain allowlist. Deterministic tests pin both variants
+(`tests/test_agent_bindings.py`, `tests/test_isolation_argv.py`,
+`tests/test_live_dry_run.py`); `arm_isolation_probe_script()` records the
+in-sandbox assertions and was executed live against the generated argv for
+both variants (transcript: `reports/arm-isolation-probe-20261002.txt`).
 
 Agent runs execute on the network-allowed tier with a fully cleared child
 environment (`subprocess env={}`); only explicit `--setenv` values reach the

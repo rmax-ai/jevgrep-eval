@@ -253,8 +253,14 @@ def seed_codex_home(
     *,
     model: str,
     effort: str,
+    jg_enabled: bool,
 ) -> Path:
-    """Create an idempotent, per-run Codex home with only required state."""
+    """Create an idempotent, per-run Codex home with only required state.
+
+    The provider-domain egress allowlist is arm-scoped: it is present only for
+    arms that declare the Jevgrep capability (``jg_enabled``); other arms keep
+    the managed proxy enabled with no allowlisted domains.
+    """
     if "codex_home_source" not in bindings:
         raise LiveHarnessError("host bindings missing codex_home_source")
     codex_home = run_dir / "codex-home"
@@ -268,12 +274,15 @@ def seed_codex_home(
     shutil.copyfile(auth_source, auth_destination)
     auth_destination.chmod(0o600)
     # Protocol (capability set, amended 2026-09-29 after the a0 smoke showed the
-    # agent fetching the upstream fix over the web): the measured capability is
-    # repository retrieval. Provider-side web surfaces are disabled, and sandboxed
-    # command egress is constrained by the managed network proxy to the retrieval
-    # provider gateway only. Verified live: non-allowlisted hosts receive a proxy
+    # agent fetching the upstream fix over the web; arm-scope amendment
+    # 2026-10-02, dq#117 review fold): the measured capability is repository
+    # retrieval. Provider-side web surfaces are disabled for every arm, and
+    # sandboxed command egress is constrained by the managed network proxy to
+    # the retrieval provider gateway only on arms that declare
+    # `retrieval_tools: [jg]`; every other arm keeps the proxy enabled with no
+    # allowlisted domains. Verified live: non-allowlisted hosts receive a proxy
     # 403; direct egress has no resolver at all; the gateway itself answers (308).
-    config = (
+    base = (
         f"model = {json.dumps(model)}\n"
         f"model_reasoning_effort = {json.dumps(effort)}\n\n"
         'web_search = "disabled"\n\n'
@@ -285,11 +294,14 @@ def seed_codex_home(
         "computer_use = false\n\n"
         "[features.network_proxy]\n"
         "enabled = true\n\n"
+    )
+    domains = (
         "[features.network_proxy.domains]\n"
         f"{json.dumps(JG_PROVIDER_DOMAIN)} = \"allow\"\n\n"
-        '[projects."/workspace"]\n'
-        'trust_level = "trusted"\n'
+        if jg_enabled
+        else ""
     )
+    config = base + domains + '[projects."/workspace"]\n' 'trust_level = "trusted"\n'
     (codex_home / "config.toml").write_text(config, encoding="utf-8")
     return codex_home
 
@@ -502,6 +514,7 @@ def _make_plan(
 ) -> dict[str, Any]:
     experiment = load_experiment(experiment_path)
     condition = load_condition(condition_path)
+    jg = _condition_has(condition, "jg")
     task = load_task(corpus_root, task_id)
     model, effort = _experiment_agent(experiment)
     bindings = load_host_bindings(_resolved_binding_path(bindings_path))
@@ -528,12 +541,12 @@ def _make_plan(
         engine_venv=engine_venv,
         bm25_tool=bm25_tool,
         bm25_index=bm25_index,
+        jg_enabled=jg,
     )
     node_codex = str(Path(bindings["node"]) / "bin" / "codex")
     executor_tail = [node_codex, *invocation.argv[1:]]
     full_argv = [*bwrap, *executor_tail]
     ledger = load_or_create_ledger(ledger_path)
-    jg = _condition_has(condition, "jg")
     reservation = JG_RESERVATION if jg else Decimal(0)
     stage = str(experiment.get("budget", {}).get("stage", "stage_2_pilot"))
     allocation = ledger.stage_allocations.get(stage)
@@ -733,6 +746,7 @@ def run_live(
     try:
         experiment = load_experiment(experiment_path)
         condition = load_condition(condition_path)
+        jg = _condition_has(condition, "jg")
         task = load_task(corpus_root, task_id)
         bindings = load_host_bindings(resolved_bindings_path)
         ledger = load_or_create_ledger(ledger_path)
@@ -761,7 +775,9 @@ def run_live(
             setup_commands=_task_setup_commands(task),
         )
         model, effort = _experiment_agent(experiment)
-        codex_home = seed_codex_home(run_dir, bindings, model=model, effort=effort)
+        codex_home = seed_codex_home(
+            run_dir, bindings, model=model, effort=effort, jg_enabled=jg
+        )
         engine_repo = _repo_root()
         engine_venv = engine_repo / ".venv"
         bm25_tool = bm25_index = None
@@ -786,6 +802,7 @@ def run_live(
             engine_venv=engine_venv,
             bm25_tool=bm25_tool,
             bm25_index=bm25_index,
+            jg_enabled=jg,
         )
         node_codex = str(Path(bindings["node"]) / "bin" / "codex")
         argv = [*bwrap, node_codex, *invocation.argv[1:]]
@@ -814,7 +831,7 @@ def run_live(
             upstream_command=None,
         )
         provider_meta = _capture_rollout(run_dir, workspace)
-        if _condition_has(condition, "jg"):
+        if jg:
             reconcile_for_run(ledger, run_id, record.events, JG_RATE)
         save_ledger(ledger, ledger_path)
         usage = provider_meta.get("usage", {})

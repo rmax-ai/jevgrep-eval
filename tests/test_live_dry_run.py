@@ -115,6 +115,7 @@ def test_dry_run_is_pure_and_contains_complete_plan(tmp_path: Path, capsys):
         f"{tmp_path / 'node'}/bin:"
     )
     assert Path(plan["executor_argv_tail"][0]).is_absolute()
+    assert "/codex-home/.config/jevgrep" in " ".join(plan["bwrap_argv"])
     assert not runs.exists()
 
     a0_corpus, a0_bindings, a0_experiment, _, a0_ledger = _inputs(
@@ -131,6 +132,8 @@ def test_dry_run_is_pure_and_contains_complete_plan(tmp_path: Path, capsys):
         bindings_path=a0_bindings,
     )
     assert a0_plan["budget_reservation_preview"] == "0"
+    assert "/codex-home/.config/jevgrep" not in " ".join(a0_plan["bwrap_argv"])
+    assert "@dzhng" not in " ".join(a0_plan["bwrap_argv"])
 
 
 def test_budget_failure_happens_before_materialization(tmp_path: Path):
@@ -208,24 +211,26 @@ def test_staged_layout_resolution(tmp_path: Path):
 
 
 def test_seed_codex_home_restricts_web_and_network(tmp_path: Path):
-    """The per-run Codex home enforces the amended capability set.
+    """The per-run Codex home enforces the amended, arm-scoped capability set.
 
     Live regression (a0 smoke 2026-09-29): the agent fetched the upstream fix
-    over the web. The seed must disable provider web surfaces and constrain
-    sandboxed command egress to the frozen Jevgrep provider gateway.
+    over the web. The seed disables provider web surfaces for every arm and
+    keeps the managed command-egress proxy on; the Jevgrep provider domain is
+    allowlisted only for arms that declare the capability (dq#117 review fold).
     """
     from jevgrep_eval.live import JG_PROVIDER_DOMAIN, seed_codex_home
 
     source = tmp_path / "source"
     source.mkdir()
     (source / "auth.json").write_text("{}", encoding="utf-8")
-    home = seed_codex_home(
-        tmp_path / "run",
+    jg_home = seed_codex_home(
+        tmp_path / "run-jg",
         {"codex_home_source": str(source)},
         model="gpt-6-luna",
         effort="max",
+        jg_enabled=True,
     )
-    config = (home / "config.toml").read_text(encoding="utf-8")
+    config = (jg_home / "config.toml").read_text(encoding="utf-8")
     assert 'web_search = "disabled"' in config
     assert "apps = false" in config
     assert "browser_use = false" in config
@@ -234,4 +239,18 @@ def test_seed_codex_home_restricts_web_and_network(tmp_path: Path):
     assert "network_access = true" in config
     assert "[features.network_proxy]" in config
     assert "enabled = true" in config
+    assert "[features.network_proxy.domains]" in config
     assert f'"{JG_PROVIDER_DOMAIN}" = "allow"' in config
+
+    plain_home = seed_codex_home(
+        tmp_path / "run-plain",
+        {"codex_home_source": str(source)},
+        model="gpt-6-luna",
+        effort="max",
+        jg_enabled=False,
+    )
+    plain = (plain_home / "config.toml").read_text(encoding="utf-8")
+    assert "[features.network_proxy]" in plain
+    assert "enabled = true" in plain
+    assert "[features.network_proxy.domains]" not in plain
+    assert JG_PROVIDER_DOMAIN not in plain

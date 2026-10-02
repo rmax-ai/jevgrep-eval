@@ -36,6 +36,7 @@ def test_agent_argv_matches_validated_recipe(tmp_path: Path):
         bindings=bindings,
         engine_repo=engine_repo,
         engine_venv=engine_venv,
+        jg_enabled=True,
     )
     assert {
         "--unshare-user",
@@ -106,3 +107,57 @@ def test_bm25_mounts_are_optional_and_sorted(tmp_path: Path):
 def test_missing_host_bindings_guides_to_example():
     with pytest.raises(ValueError, match="host_bindings\\.example\\.yaml"):
         load_host_bindings(Path("/definitely/missing/host_bindings.yaml"))
+
+
+def test_arm_isolation_scopes_the_jev_capability(tmp_path: Path):
+    """Only arms declaring `retrieval_tools: [jg]` may resolve or use Jevgrep.
+
+    The Jevgrep capability has three channels — the jg executable (node
+    toolchain), the provider credentials, and the provider-domain egress
+    allowlist. The argv must carry all three only for the Jevgrep arm.
+    """
+    bindings = _bindings(tmp_path)
+    common = {
+        "workspace": tmp_path / "workspace",
+        "codex_home": tmp_path / "codex-home",
+        "bindings": bindings,
+        "engine_repo": tmp_path / "engine",
+        "engine_venv": tmp_path / "engine-venv",
+    }
+    node = str(Path(bindings["node"]).resolve())
+    credentials = str(Path(bindings["provider_credentials"]).resolve())
+
+    without_jg = agent_bwrap_argv(**common, jg_enabled=False)
+    with_jg = agent_bwrap_argv(**common, jg_enabled=True)
+
+    without_targets = _bind_targets(without_jg)
+    with_targets = _bind_targets(with_jg)
+
+    # Jevgrep arm: full toolchain + provider-credentials mount.
+    assert (node, node) in with_targets
+    assert (credentials, "/codex-home/.config/jevgrep") in with_targets
+
+    # Non-Jevgrep arm: minimal executor runtime; no trace of the jg surface.
+    assert (node, node) not in without_targets
+    assert (f"{node}/bin/node", f"{node}/bin/node") in without_targets
+    assert (
+        f"{node}/lib/node_modules/@openai/codex",
+        f"{node}/lib/node_modules/@openai/codex",
+    ) in without_targets
+    joined = " ".join(without_jg)
+    assert "@dzhng" not in joined
+    assert "/codex-home/.config/jevgrep" not in joined
+    assert "bin/jg" not in joined
+    codex_entry = [
+        "--symlink",
+        "../lib/node_modules/@openai/codex/bin/codex.js",
+        f"{node}/bin/codex",
+    ]
+    assert any(
+        without_jg[index : index + 3] == codex_entry
+        for index in range(len(without_jg) - 2)
+    )
+    assert not any(
+        with_jg[index : index + 3] == codex_entry
+        for index in range(len(with_jg) - 2)
+    )

@@ -13,7 +13,7 @@ host_bindings:
   uv_python_alias: "<uv>/python/cpython-3.12-linux-aarch64-gnu"
   uv_python_real: "<uv>/python/cpython-3.12.13-linux-aarch64-gnu"
   workspace_venv: "<workspace>/.venv"
-  node_toolchain: "<node>"                             # bin+lib; provides jg + @dzhng/jevgrep
+  node_toolchain: "<node>"                             # bin+lib; jg-declaring arms get the whole tree; other arms get the node runtime + codex package only (2026-10-02)
   provider_credentials: "<home>/.config/jevgrep"       # read-only; sandbox HOME
   etc: [/etc/resolv.conf, /etc/nsswitch.conf, /etc/hosts, /etc/ssl]
-validation: "V4 2026-09-29 PASS — jg doctor green in-sandbox (metered)"
+validation: "V4 2026-09-29 PASS — jg doctor green in-sandbox (metered); 2026-10-02 arm-scope PASS — jg toolchain/credentials/provider-domain limited to retrieval_tools:[jg] arms (dq#117 review fold; reports/arm-isolation-probe-20261002.txt)"
