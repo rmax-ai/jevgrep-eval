@@ -103,3 +103,25 @@ retained (jg arms unaffected by the fix). Regeneration reliability: a post-timeo
 teardown hang (two cells) was fixed with bounded process teardown + pipe drain
 (`5da0e45`, 2 regressions); the final regeneration wave ran 21/21 cells rc=0 with
 zero timeouts. Re-review pending at the revised branch head (`agent/issue-117-jevgrep-eval`).
+
+## Closeout integrity review — round 6 delta re-check + fold (2026-10-08)
+
+Local round-6 delta re-check over the evidence revision (`21e2a0a..767e2d2`; lane codex
+`gpt-6-sol`, medium; artifact `reports/closeout-integrity-review-r6-20261008.md`). Result:
+items 1–4 PASS; **item 5 FIX-FIRST** — the rebuilt report's `claim_map`/`limitations`
+omitted the statement that the affected A0/A3 cells were regenerated under the corrected
+environment (present only in this document). Folded at `4adfe41`: the statement is now a
+declared report limitation; `reports/pilot-v1.json` rebuilt (`report_digest` `27128d76…`).
+Only `limitations` (4→5 entries) and the digest changed; the byte-identical rebuild from
+the bundle alone was re-verified.
+
+## Closeout integrity review — round 7 delta re-check (2026-10-08)
+
+Round-7 delta re-check of the fold delta (`767e2d2..4adfe41`; same lane; artifact
+`reports/closeout-integrity-review-r7-20261008.md`). Result: **PASS** — the
+regenerated-cell provenance statement is present in the committed report's `limitations`;
+the report rebuilds byte-identically from the evidence bundle alone (`sha256 f6182efd…`,
+25641 bytes; `report_digest` `27128d76…`); the permitted report test subset is green (10);
+containment exact (`src/jevgrep_eval/report.py`, `reports/pilot-v1.json`,
+`docs/review-resolution.md`). Re-review handoff authorized: frozen revision `4adfe41`;
+commits after it are record-only artifact commits.
