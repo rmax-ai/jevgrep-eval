@@ -96,7 +96,7 @@ the provider credentials were mounted for every arm.
 | Arm-scoped exposure: full node toolchain, provider-credentials bind, and provider-domain egress allowlist only for `retrieval_tools: [jg]` arms; other arms get the node runtime + Codex package + codex entrypoint symlink only | `src/jevgrep_eval/isolation.py`, `src/jevgrep_eval/live.py` |
 | Deterministic arm-isolation tests (argv pins, probe pins, dry-run/seed pins) | `tests/test_agent_bindings.py`, `tests/test_isolation_argv.py`, `tests/test_live_dry_run.py` |
 | In-sandbox probe `arm_isolation_probe_script()`, executed live against the generated argv (both variants) | `reports/arm-isolation-probe-20261002.txt` |
-| Regenerated affected pilot cells (a0/a3 × 12 dev tasks) under the corrected environment; report + evidence bundle rebuilt | `reports/pilot-v1.json` (`report_digest` `2ba59b24…`), `reports/pilot-v1-evidence/` (`bundle_digest` `f640d6c6…`, verify_run `36`/36) |
+| Regenerated affected pilot cells (a0/a3 × 12 dev tasks) under the corrected environment; report + evidence bundle rebuilt | `reports/pilot-v1.json` (`report_digest` `27128d76…`), `reports/pilot-v1-evidence/` (`bundle_digest` `f640d6c6…`, verify_run `36`/36) |
 
 Battery: 123 tests OK; ruff clean; ledger unchanged (committed `$0.768`); a1 cells
 retained (jg arms unaffected by the fix). Regeneration reliability: a post-timeout

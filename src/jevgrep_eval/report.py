@@ -511,6 +511,7 @@ def build_live_report(
             "task-clustered paired analysis, exact McNemar on first complete repetition",
             "Jev cash is modeled from executed-search counts at the frozen measured rate; per-run receipts are not exposed by the provider gateway",
             "per-run isolation/network probe artifacts were not emitted in the pilot (recipe-level validation only); holdout runs must emit them",
+            "the affected A0/A3 pilot cells (12 dev tasks) were regenerated under the corrected environment after the arm-isolation fix (2bd0b0c); A1 cells retained from the original pilot",
         ],
         "report_digest": "",
     }
