@@ -15,7 +15,8 @@ task/arm/terminal status; plus `bundle_digest` over the manifest itself.
 
 ## Sanitization
 
-Host-home path strings were redacted to a `<host-home>` placeholder. The build
+Host-home path strings and remaining host-user identifier fragments were redacted
+to a `<host-home>` placeholder. The build
 fails closed if any bundled file still contains a host-home path, a known
 internal placeholder token, a user identifier, a scratch-directory path, or
 provider-session vocabulary. No digest-bearing field is textual, so the
@@ -31,6 +32,9 @@ recorded digests are unaffected by redaction.
   directories and `ledger.json` into a `runs/` directory, then
   `uv run jevgrep-eval report build --runs <dir> --corpus corpus`
   and compare `report_digest` with `reports/pilot-v1.json`.
+- `bundle_digest` recomputes from `manifest.json` alone:
+  `jevgrep_eval.util.digest(<manifest with an empty digest value>,
+  component="pilot-evidence-bundle")` (canonical JSON, sha256).
 
 Raw agent streams, workspaces and rollout logs are intentionally not included
 (size); they remain host-side audit artifacts.

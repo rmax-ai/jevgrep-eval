@@ -82,3 +82,24 @@ offline adapter suite passes (17); delta containment verified (4 files, nothing 
 round-3 artifact + disposition accurate and sanitized. Artifact:
 `reports/closeout-integrity-review-r4-20260930.md`. **Unmerged-PR handoff authorized** with
 `4da3431` as the frozen revision; commits after `4da3431` are record-only review artifacts.
+
+## External review — arm-isolation fold + regenerated pilot (2026-10-02, dq#117)
+
+ChatGPT external review of `rmax-ai/jevgrep-eval#1` @ `21e2a0a` (2026-09-30, card
+comment 5904143906, REQUEST_CHANGES) found one blocking experimental-validity
+defect: the A0/A3 controls retained access to the Jevgrep capability — the shared
+node binding exposed the whole toolchain (`bin/jg`) on PATH for every arm, and
+the provider credentials were mounted for every arm.
+
+| Fix | Where |
+|---|---|
+| Arm-scoped exposure: full node toolchain, provider-credentials bind, and provider-domain egress allowlist only for `retrieval_tools: [jg]` arms; other arms get the node runtime + Codex package + codex entrypoint symlink only | `src/jevgrep_eval/isolation.py`, `src/jevgrep_eval/live.py` |
+| Deterministic arm-isolation tests (argv pins, probe pins, dry-run/seed pins) | `tests/test_agent_bindings.py`, `tests/test_isolation_argv.py`, `tests/test_live_dry_run.py` |
+| In-sandbox probe `arm_isolation_probe_script()`, executed live against the generated argv (both variants) | `reports/arm-isolation-probe-20261002.txt` |
+| Regenerated affected pilot cells (a0/a3 × 12 dev tasks) under the corrected environment; report + evidence bundle rebuilt | `reports/pilot-v1.json` (`report_digest` `2ba59b24…`), `reports/pilot-v1-evidence/` (`bundle_digest` `f640d6c6…`, verify_run `36`/36) |
+
+Battery: 123 tests OK; ruff clean; ledger unchanged (committed `$0.768`); a1 cells
+retained (jg arms unaffected by the fix). Regeneration reliability: a post-timeout
+teardown hang (two cells) was fixed with bounded process teardown + pipe drain
+(`5da0e45`, 2 regressions); the final regeneration wave ran 21/21 cells rc=0 with
+zero timeouts. Re-review pending at the revised branch head (`agent/issue-117-jevgrep-eval`).
