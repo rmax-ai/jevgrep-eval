@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import signal
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +11,7 @@ from typing import Any
 
 import yaml
 
+from ..proc import bounded_terminate
 from ..util import canonical_json, digest
 from .base import HarnessResult
 
@@ -173,13 +173,7 @@ class CodexHarness:
         try:
             stdout, stderr = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired as exc:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=0.5)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-            stdout, stderr = process.communicate()
+            bounded_terminate(process)
             raise TimeoutError(f"Codex timed out after {timeout}s") from exc
         path = session_path
         if path is not None:

@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import signal
 import subprocess
 import tempfile
 from collections.abc import Iterable
@@ -20,6 +19,7 @@ from typing import Any
 import yaml
 
 from .models import EvaluationRecord, FailureClass, RetrievalResult, TaskCase
+from .proc import bounded_terminate
 from .retrieval.metrics import RetrievalMetrics, calculate_metrics
 from .runner import MalformedPatchError, RunnerError, replay_patch
 from .util import canonical_json, digest, digest_bytes, now
@@ -96,22 +96,9 @@ def _run_tests(argv: list[str], cwd: Path, *, timeout_s: float) -> TestExecution
     try:
         output, _ = process.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired as exc:
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=0.5)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait()
-        # Reap the direct child and drain both pipe ends after descendants are
-        # terminated.  Returning the partial ``TimeoutExpired`` buffer leaves
-        # writers alive and makes repeated evaluator runs non-deterministic.
-        drained, _ = process.communicate()
+        # Bounded teardown: writers that escaped the process group (setsid
+        # descendants) or stall in D-state must not wedge the evaluator.
+        drained, _ = bounded_terminate(process, grace_s=1.0, drain_s=2.0)
         output = drained or exc.stdout or b""
         if isinstance(output, str):
             output = output.encode()

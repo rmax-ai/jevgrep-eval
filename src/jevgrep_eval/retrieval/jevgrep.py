@@ -7,9 +7,7 @@ demonstration and never represents retriever or model quality.
 from __future__ import annotations
 
 import json
-import os
 import re
-import signal
 import subprocess
 import time
 from dataclasses import dataclass
@@ -17,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from ..models import RetrievalHit, RetrievalResult
+from ..proc import bounded_terminate
 from ..util import normalize_path
 from .chunking import tokenize
 
@@ -293,20 +292,9 @@ def _run_process(
     try:
         stdout, stderr = process.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired as exc:
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=0.5)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait()
-        # communicate again reaps pipe readers after descendants exit.
-        stdout, stderr = process.communicate()
+        # Bounded teardown: an escaped pipe holder must not wedge the adapter;
+        # the pin release probe re-checks the wrapper anyway.
+        bounded_terminate(process, grace_s=1.0, drain_s=2.0)
         raise JevgrepTimeout(f"Jevgrep timed out after {timeout_s}s") from exc
     truncated = len(stdout) > max_output_bytes or len(stderr) > max_output_bytes
     return stdout[:max_output_bytes], stderr[:max_output_bytes], process.returncode, truncated

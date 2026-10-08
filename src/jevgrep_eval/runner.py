@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import signal
 import subprocess
 import tempfile
 import time
@@ -35,6 +34,7 @@ from .models import (
     TerminalStatus,
     WorkspaceManifest,
 )
+from .proc import bounded_terminate
 from .traces import derive_metrics
 from .traces_codex import parse_trace
 from .util import canonical_json, digest, digest_bytes, normalize_path, now
@@ -351,18 +351,7 @@ def run_command(
     try:
         stdout, stderr = process.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired as exc:
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait()
+        drained_out, _ = bounded_terminate(process, grace_s=2.0, drain_s=2.0)
         if partial_stdout_path is not None:
             # TimeoutExpired carries the stream read so far as bytes even in text mode.
             raw = exc.stdout
@@ -372,10 +361,7 @@ def run_command(
                 partial = raw
             else:
                 partial = ""
-            try:
-                leftover = process.stdout.read() if process.stdout is not None else ""
-            except (OSError, ValueError):
-                leftover = ""
+            leftover = drained_out
             if isinstance(leftover, bytes):
                 leftover = leftover.decode("utf-8", "replace")
             combined = partial + (leftover or "")

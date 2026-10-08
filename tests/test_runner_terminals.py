@@ -121,3 +121,47 @@ def test_runner_retains_stdout_and_trace_diagnostics(mini_tree, tmp_path):
     assert record.trace_coverage == "partial"
     assert record.trace_missing  # diagnostics retained for coverage decisions
     assert record.trace_errors
+
+
+def test_timeout_bounded_when_descendant_escapes_process_group(tmp_path):
+    """A setsid'd descendant holding stdout must not wedge run_command after the kill."""
+    import os
+    import signal
+    import time
+
+    desc_pid_file = tmp_path / "descendant.pid"
+    partial = tmp_path / "agent-stdout.jsonl"
+    code = (
+        "import subprocess, time\n"
+        "subprocess.Popen(['setsid', 'bash', '-c', 'echo $$ > "
+        + str(desc_pid_file)
+        + "; exec sleep 30'])\n"
+        "print('partial-line', flush=True)\n"
+        "time.sleep(30)\n"
+    )
+    started = time.monotonic()
+    with pytest.raises(TimeoutError):
+        run_command(["python3", "-c", code], ".", timeout_s=0.8, partial_stdout_path=partial)
+    elapsed = time.monotonic() - started
+    assert elapsed < 8.0, f"run_command wedged {elapsed:.1f}s on an escaped pipe holder"
+    assert partial.is_file()
+    pid = int(desc_pid_file.read_text())
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
+def test_timeout_bounded_when_child_ignores_sigterm():
+    import time
+
+    code = (
+        "import signal, time\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        "print('ready', flush=True)\n"
+        "time.sleep(30)\n"
+    )
+    started = time.monotonic()
+    with pytest.raises(TimeoutError):
+        run_command(["python3", "-c", code], ".", timeout_s=0.5)
+    assert time.monotonic() - started < 8.0
