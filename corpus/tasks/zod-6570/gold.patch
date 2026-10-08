@@ -1,0 +1,21 @@
+diff --git a/packages/zod/src/v4/core/doc.ts b/packages/zod/src/v4/core/doc.ts
+index 0b0a4090fdd1a09a9bc3e4c5613dd5d0c9f559d4..89223d7e7e6ec5eb8101888734e36bd3e4016c6b 100644
+--- a/packages/zod/src/v4/core/doc.ts
++++ b/packages/zod/src/v4/core/doc.ts
+@@ -12,10 +12,14 @@ export class Doc {
+     this.closed = closed;
+   }
+ 
++  // the compiler catches a child's throw and keeps writing into this doc, so the indent has to unwind with it
+   indented(fn: (doc: Doc) => void) {
+     this.indent += 1;
+-    fn(this);
+-    this.indent -= 1;
++    try {
++      fn(this);
++    } finally {
++      this.indent -= 1;
++    }
+   }
+ 
+   write(fn: ModeWriter): void;

@@ -1,0 +1,50 @@
+task_id: jinja-1852
+repo_id: pallets__jinja
+base_sha: 48b0687e05a5466a91cd5812d604fa37ad0943b4
+gold_sha: 767b23617628419ae3709ccfb02f9602ae9fe51f
+fix_ref: https://github.com/pallets/jinja/pull/1852
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: F-string syntax error in
+  code generation. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- src/jinja2/compiler.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/jinja-1852/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_compile.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/pallets__jinja/uv
+expected_test_seconds: 30.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: dev
+manifest:
+- path: tasks/jinja-1852/gold.patch
+  sha256: a508717d7e6f0f0f45676ac503c75d187051a5b4d0cb0bc17ae35e846a75c3b0
+  role: evaluator-gold-patch
+- path: tasks/jinja-1852/hidden_tests.patch
+  sha256: 1baebde20b8445d31865c67e7b51709f13994932df296ce62a508f4a7e32ee54
+  role: evaluator-hidden-tests
+- path: tasks/jinja-1852/admission.json
+  sha256: cce45b5df061e3d287150d888a956be338bd06845a91f19008c9fb1ff97314da
+  role: admission-evidence
+- path: tasks/jinja-1852/sanitization.md
+  sha256: 8a325806e54de0a8e59819b7ff6e71ae66622d0741a1cc128f56448c6f5c173c
+  role: sanitization-review
+- path: tasks/jinja-1852/gold-evidence.json
+  sha256: 68acc3d469199b586b3f8345b0ac44d407b84d0bf7e96c062f25f151b9badb42
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_compile.py

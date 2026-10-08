@@ -1,0 +1,1 @@
+{"files":["packages/zod/src/v4/core/doc.ts"],"gold_patch_sha256":"e28fe649a7342faf9307253b65a1fe5a343ea2392fe3d4894efc54fc586be6d0","gold_sha":"dcbcf0529ca1e5424541d5d4b58e0a7b79507f51","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"zod-6570"}

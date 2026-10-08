@@ -1,0 +1,116 @@
+schema_version: 2
+unit: task
+seed: 117
+dev:
+  tasks:
+  - click-3533
+  - click-3678
+  - click-3764
+  - click-3805
+  - click-3818
+  - click-3865
+  - jinja-1665
+  - jinja-1852
+  - jinja-1979
+  - jinja-1984
+  - jinja-2029
+  - jinja-2061
+  - pluggy-632
+  - pluggy-646
+  - pluggy-731
+  admitted_tasks:
+  - click-3533
+  - click-3678
+  - click-3764
+  - click-3805
+  - click-3818
+  - click-3865
+  - jinja-1665
+  - jinja-1852
+  - jinja-1984
+  - jinja-2029
+  - pluggy-646
+  - pluggy-731
+  repositories:
+  - pallets/click
+  - pallets/jinja
+  - pytest-dev/pluggy
+  quota:
+    Python: 15
+    TypeScript: 0
+    JavaScript: 0
+    admitted_tasks: 12
+holdout:
+  tasks:
+  - attrs-1381
+  - attrs-1428
+  - attrs-1446
+  - attrs-1461
+  - attrs-1513
+  - attrs-1593
+  - execa-1199
+  - execa-1232
+  - execa-1259
+  - httpx-3116
+  - httpx-3131
+  - immer-1249
+  - immer-1251
+  - immer-1255
+  - immer-1271
+  - immer-1283
+  - immer-1289
+  - ky-867
+  - ky-880
+  - ky-881
+  - requests-7395
+  - requests-7433
+  - requests-7502
+  - tomlkit-530
+  - tomlkit-533
+  - tomlkit-545
+  - tomlkit-549
+  - tomlkit-550
+  - tomlkit-551
+  - tqdm-1473
+  - tqdm-1781
+  - tqdm-1830
+  - zod-6553
+  - zod-6570
+  - zod-6572
+  - zod-6580
+  - zod-6582
+  - zod-6587
+  - zustand-3469
+  - zustand-3511
+  - zustand-3555
+  admitted_tasks:
+  - immer-1251
+  - immer-1255
+  - immer-1283
+  - tqdm-1781
+  - tqdm-1830
+  - zod-6553
+  - zod-6570
+  - zod-6572
+  - zod-6580
+  - zod-6587
+  repositories:
+  - python-attrs/attrs
+  - sindresorhus/execa
+  - encode/httpx
+  - immerjs/immer
+  - sindresorhus/ky
+  - psf/requests
+  - python-poetry/tomlkit
+  - tqdm/tqdm
+  - colinhacks/zod
+  - pmndrs/zustand
+  quota:
+    Python: 0
+    TypeScript: 0
+    JavaScript: 0
+    candidate_tasks: 41
+    admitted_tasks: 10
+dedupe_rule: whole repositories are assigned to one split; no changed-file/domain
+  pair crosses the boundary
+admission_rule: only admitted_tasks with valid admission.json evidence may be scored

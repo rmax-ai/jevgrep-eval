@@ -1,0 +1,46 @@
+task_id: execa-1232
+repo_id: sindresorhus__execa
+base_sha: f3a2e8481a1e9138de3895827895c834078b9456
+gold_sha: 3ed0544b697fea99a367869a80a69589c026c4a8
+fix_ref: https://github.com/sindresorhus/execa/pull/1232
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Input with inherited stdin.
+  Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- lib/stdio/handle.js
+gold_evidence_files: *id001
+hidden_test_patch: tasks/execa-1232/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- test/fixtures/nested-input-inherit.js
+- test/io/input-option.js
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/sindresorhus__execa/pnpm-store
+expected_test_seconds: 60.0
+stratum: semantic-localization
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/execa-1232/gold.patch
+  sha256: 12ce0ae0a7ce18fba22c8111d83d1d389cf0acae6c6ed8d2fb4c1d15441c4715
+  role: evaluator-gold-patch
+- path: tasks/execa-1232/hidden_tests.patch
+  sha256: 23c51be232cad7e914a25b7b6147ae0dfaa891a80b7f4c4c38a98b0f6fd819ea
+  role: evaluator-hidden-tests
+- path: tasks/execa-1232/admission.json
+  sha256: c53d517c691d41d9e0b0448728f376329951d8af2143420860d3b4da18eb4b74
+  role: admission-evidence
+- path: tasks/execa-1232/sanitization.md
+  sha256: e7c49940590e8794c3961c1daa53a696bef0d54b06ec23941ebc111cbf44c988
+  role: sanitization-review
+- path: tasks/execa-1232/gold-evidence.json
+  sha256: d0ab7c29f93a99296807be63b6d9446e60f5f3243f0c86537c6a95369e6519df
+  role: evaluator-gold-evidence

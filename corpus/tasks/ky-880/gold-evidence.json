@@ -1,0 +1,1 @@
+{"files":["source/types/ky.ts","source/utils/merge.ts"],"gold_patch_sha256":"038f8ebc22ebeb725cff35421d0ab6c797397528b2eb9f8705cc5c2bd0fff1a1","gold_sha":"0bda554d448c1b57c17a5c18114432c02465d467","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"ky-880"}

@@ -1,0 +1,1 @@
+{"files":["source/utils/merge.ts"],"gold_patch_sha256":"f5ee7f95be91c2b7ad6c4392e2e1787d95694f0bba1fc30d99f1b2f0f82f61c6","gold_sha":"06375efbacfc1bdc96f7a4de7560684b765e1274","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"ky-867"}

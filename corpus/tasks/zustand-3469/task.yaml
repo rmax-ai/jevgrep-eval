@@ -1,0 +1,46 @@
+task_id: zustand-3469
+repo_id: pmndrs__zustand
+base_sha: 4b96f4e3a53abdbb1419cacadddc9b1bd786dab3
+gold_sha: 4e9bcf0c82938cfe2463495a845806cd5ec3e59b
+fix_ref: https://github.com/pmndrs/zustand/pull/3469
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Support Firefox/Safari
+  stack format in findCallerName. Preserve the established public API and behavior
+  outside that case.'
+changed_files: &id001
+- src/middleware/devtools.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zustand-3469/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- tests/devtools.test.tsx
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/pmndrs__zustand/pnpm-store
+expected_test_seconds: 60.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/zustand-3469/gold.patch
+  sha256: 79af7d7045892c6e13be3e192c036c51dfeb1ec77da17c9e9954c9351ef4505d
+  role: evaluator-gold-patch
+- path: tasks/zustand-3469/hidden_tests.patch
+  sha256: 60c57b78501f79be614afe150d3b0367fc47dc326da3a22448e71c79a4d25d89
+  role: evaluator-hidden-tests
+- path: tasks/zustand-3469/admission.json
+  sha256: 0666b32e4318c171acf0ec73ca197fa4cf8c8864e5335eec06d230fe0b5fb55e
+  role: admission-evidence
+- path: tasks/zustand-3469/sanitization.md
+  sha256: c26c10bbbc73963d5cee152144c611522480d37ccb03186e670e2e65bf83d97a
+  role: sanitization-review
+- path: tasks/zustand-3469/gold-evidence.json
+  sha256: 08313a2733d2e8c2ac321bad2d44d4ccfff32c9654db52e4da50241aa30edfab
+  role: evaluator-gold-evidence

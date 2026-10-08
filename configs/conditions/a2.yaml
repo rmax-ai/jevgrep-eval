@@ -1,0 +1,7 @@
+id: a2
+label: jevgrep-forced-first
+retrieval_tools: [jg]
+forced_first: jg
+oracle_hint: false
+prompt_fragment: "A code-search tool `jg` is available on PATH for semantic code retrieval over this repository. Begin your investigation by using `jg` for retrieval before other exploration."
+notes: "Diagnostic prompt-level forced-first arm; noncompliance is retained."

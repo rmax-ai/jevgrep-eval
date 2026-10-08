@@ -1,0 +1,24 @@
+diff --git a/tests/test_pyright.py b/tests/test_pyright.py
+index 3f2bf89dd2a9bfe4bdab31200b46f6ad55e64ccf..b974114ce466867e9d48f095f9d4b94bf78bf263 100644
+--- a/tests/test_pyright.py
++++ b/tests/test_pyright.py
+@@ -56,8 +56,7 @@ def test_pyright_baseline():
+         (
+             "error",
+             'Cannot assign to attribute "a" for class '
+-            '"Frozen"\n\xa0\xa0"Frozen" is frozen\n\xa0\xa0\xa0\xa0'
+-            'Attribute "__set__" is unknown',
++            '"Frozen"\n\xa0\xa0Attribute "a" is read-only',
+         ),
+         (
+             "information",
+@@ -66,8 +65,7 @@ def test_pyright_baseline():
+         (
+             "error",
+             'Cannot assign to attribute "a" for class '
+-            '"FrozenDefine"\n\xa0\xa0"FrozenDefine" is frozen\n\xa0\xa0\xa0\xa0'
+-            'Attribute "__set__" is unknown',
++            '"FrozenDefine"\n\xa0\xa0Attribute "a" is read-only',
+         ),
+         (
+             "information",

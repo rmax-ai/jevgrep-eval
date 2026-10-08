@@ -1,0 +1,48 @@
+task_id: zod-6570
+repo_id: colinhacks__zod
+base_sha: 277613a61a11f299d9897ddd88490002a995f746
+gold_sha: dcbcf0529ca1e5424541d5d4b58e0a7b79507f51
+fix_ref: https://github.com/colinhacks/zod/pull/6570
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Unwind the doc indent when
+  a child generator throws. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- packages/zod/src/v4/core/doc.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zod-6570/hidden_tests.patch
+test_runner: vitest
+test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/core/tests/compile.test.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/colinhacks__zod/pnpm-store
+expected_test_seconds: 60.0
+stratum: configuration-registration
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/zod-6570/gold.patch
+  sha256: e28fe649a7342faf9307253b65a1fe5a343ea2392fe3d4894efc54fc586be6d0
+  role: evaluator-gold-patch
+- path: tasks/zod-6570/hidden_tests.patch
+  sha256: 1937fac273d350e4e2c024a529a4f201c7f6ac13aec35a0fa8561e50219629d3
+  role: evaluator-hidden-tests
+- path: tasks/zod-6570/admission.json
+  sha256: aac8afd7c3dca8f500f073b1490a45a1392ad269707e511a542db841b9f6581a
+  role: admission-evidence
+- path: tasks/zod-6570/sanitization.md
+  sha256: 64714a47eb1d9f0446965984aafa32573653c89418fec24b26c1c365622a870f
+  role: sanitization-review
+- path: tasks/zod-6570/gold-evidence.json
+  sha256: 1a7e6e1206bfdcf8bb2cae8372c80dc2bb888b929492c9bbe2bda21b02bff198
+  role: evaluator-gold-evidence
+hidden_test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/core/tests/compile.test.ts

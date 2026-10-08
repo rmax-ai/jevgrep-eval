@@ -1,0 +1,163 @@
+schema_version: 1
+repos:
+- repo_id: pallets__click
+  url: https://github.com/pallets/click
+  license_spdx: BSD-3-Clause
+  language: Python
+  base_commit_candidates:
+  - click-3533
+  - click-3678
+  - click-3764
+  - click-3805
+  - click-3818
+  - click-3865
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/pallets__click/ (mechanism recorded per task setup_commands)
+- repo_id: tqdm__tqdm
+  url: https://github.com/tqdm/tqdm
+  license_spdx: MPL-2.0 AND MIT
+  language: Python
+  base_commit_candidates:
+  - tqdm-1473
+  - tqdm-1781
+  - tqdm-1830
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/tqdm__tqdm/ (mechanism recorded per task setup_commands)
+- repo_id: python-attrs__attrs
+  url: https://github.com/python-attrs/attrs
+  license_spdx: MIT
+  language: Python
+  base_commit_candidates:
+  - attrs-1381
+  - attrs-1428
+  - attrs-1446
+  - attrs-1461
+  - attrs-1513
+  - attrs-1593
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/python-attrs__attrs/ (mechanism recorded per task setup_commands)
+- repo_id: python-poetry__tomlkit
+  url: https://github.com/python-poetry/tomlkit
+  license_spdx: MIT
+  language: Python
+  base_commit_candidates:
+  - tomlkit-530
+  - tomlkit-533
+  - tomlkit-545
+  - tomlkit-549
+  - tomlkit-550
+  - tomlkit-551
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/python-poetry__tomlkit/ (mechanism recorded per task
+    setup_commands)
+- repo_id: pallets__jinja
+  url: https://github.com/pallets/jinja
+  license_spdx: BSD-3-Clause
+  language: Python
+  base_commit_candidates:
+  - jinja-1665
+  - jinja-1852
+  - jinja-1979
+  - jinja-1984
+  - jinja-2029
+  - jinja-2061
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/pallets__jinja/ (mechanism recorded per task setup_commands)
+- repo_id: encode__httpx
+  url: https://github.com/encode/httpx
+  license_spdx: BSD-3-Clause
+  language: Python
+  base_commit_candidates:
+  - httpx-3116
+  - httpx-3131
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/encode__httpx/ (mechanism recorded per task setup_commands)
+- repo_id: colinhacks__zod
+  url: https://github.com/colinhacks/zod
+  license_spdx: MIT
+  language: TypeScript
+  base_commit_candidates:
+  - zod-6553
+  - zod-6570
+  - zod-6572
+  - zod-6580
+  - zod-6582
+  - zod-6587
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: pnpm+overlay
+  cache_injection: dep-cache/colinhacks__zod/ (mechanism recorded per task setup_commands)
+- repo_id: immerjs__immer
+  url: https://github.com/immerjs/immer
+  license_spdx: MIT
+  language: JavaScript
+  base_commit_candidates:
+  - immer-1249
+  - immer-1251
+  - immer-1255
+  - immer-1271
+  - immer-1283
+  - immer-1289
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: yarn+overlay
+  cache_injection: dep-cache/immerjs__immer/ (mechanism recorded per task setup_commands)
+- repo_id: pmndrs__zustand
+  url: https://github.com/pmndrs/zustand
+  license_spdx: MIT
+  language: TypeScript
+  base_commit_candidates:
+  - zustand-3469
+  - zustand-3511
+  - zustand-3555
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: pnpm
+  cache_injection: dep-cache/pmndrs__zustand/ (mechanism recorded per task setup_commands)
+- repo_id: sindresorhus__execa
+  url: https://github.com/sindresorhus/execa
+  license_spdx: MIT
+  language: JavaScript
+  base_commit_candidates:
+  - execa-1199
+  - execa-1232
+  - execa-1259
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: npm
+  cache_injection: dep-cache/sindresorhus__execa/ (mechanism recorded per task setup_commands)
+- repo_id: pytest-dev__pluggy
+  url: https://github.com/pytest-dev/pluggy
+  license_spdx: MIT
+  language: Python
+  base_commit_candidates:
+  - pluggy-632
+  - pluggy-646
+  - pluggy-731
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/pytest-dev__pluggy/ (mechanism recorded per task setup_commands)
+- repo_id: psf__requests
+  url: https://github.com/psf/requests
+  license_spdx: Apache-2.0
+  language: Python
+  base_commit_candidates:
+  - requests-7395
+  - requests-7433
+  - requests-7502
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: uv
+  cache_injection: dep-cache/psf__requests/ (mechanism recorded per task setup_commands)
+- repo_id: sindresorhus__ky
+  url: https://github.com/sindresorhus/ky
+  license_spdx: MIT
+  language: TypeScript
+  base_commit_candidates:
+  - ky-867
+  - ky-880
+  - ky-881
+  source: operator-staged public clone cache; no live fetch in tests
+  dependency_cache: npm
+  cache_injection: dep-cache/sindresorhus__ky/ (mechanism recorded per task setup_commands)

@@ -1,0 +1,13 @@
+diff --git a/src/middleware/devtools.ts b/src/middleware/devtools.ts
+index a88265528a29a55f9259cd185b1f99c15e0e6b88..cbbe6832aab49702129a290071758b3e121b27b7 100644
+--- a/src/middleware/devtools.ts
++++ b/src/middleware/devtools.ts
+@@ -96,7 +96,7 @@ type Devtools = <
+ >(
+   initializer: StateCreator<T, [...Mps, ['zustand/devtools', never]], Mcs, U>,
+   devtoolsOptions?: DevtoolsOptions,
+-) => StateCreator<T, Mps, [['zustand/devtools', never], ...Mcs]>
++) => StateCreator<T, Mps, [['zustand/devtools', never], ...Mcs], U>
+ 
+ type DevtoolsImpl = <T>(
+   storeInitializer: StateCreator<T, [], []>,

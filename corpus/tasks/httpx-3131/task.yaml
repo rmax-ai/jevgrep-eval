@@ -1,0 +1,50 @@
+task_id: httpx-3131
+repo_id: encode__httpx
+base_sha: f3eb3c90fdd19d2e4c5239e19a3588d072ff53fb
+gold_sha: 0006ed0547f8f8a3cbe2edf758e996c3c73b5e7d
+fix_ref: https://github.com/encode/httpx/pull/3131
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Ruff v0.3.0 violations.
+  Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- httpx/_compat.py
+- httpx/_decoders.py
+- httpx/_exceptions.py
+- httpx/_transports/default.py
+- httpx/_urlparse.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/httpx-3131/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/client/test_auth.py
+- tests/test_auth.py
+- tests/test_multipart.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/encode__httpx/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/httpx-3131/gold.patch
+  sha256: 4a5fffb9db320d19bf1af0006a67fef894cb89c73a9a2b2d59fcca184b4e96d2
+  role: evaluator-gold-patch
+- path: tasks/httpx-3131/hidden_tests.patch
+  sha256: 38f4bfc3a2dbd5fcce098702c3b716c7be5a68fcb80e9e180f4557adf811023a
+  role: evaluator-hidden-tests
+- path: tasks/httpx-3131/admission.json
+  sha256: 429e222502b2af1a0b037452ca490a45fc814c51aadc05e6c2cff7d8bef0186c
+  role: admission-evidence
+- path: tasks/httpx-3131/sanitization.md
+  sha256: df597fa28e916d5a4c2f67c0f0e0523f1748620e42b2c48e5823fc0969525d98
+  role: sanitization-review
+- path: tasks/httpx-3131/gold-evidence.json
+  sha256: b7b93fe193a6b9f2b28925e71577425c9e8d9af23899410418101f0c16e36b68
+  role: evaluator-gold-evidence

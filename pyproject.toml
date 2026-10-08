@@ -1,0 +1,31 @@
+[project]
+name = "jevgrep-eval"
+version = "0.1.0"
+description = "Reproducible benchmark: Codex Luna code localization and task completion with native search vs Jevgrep vs BM25 retrieval"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.13.5",
+    "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+jevgrep-eval = "jevgrep_eval.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.16,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["corpus/.cache/**", "corpus/.staging/**", ".staging/**"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

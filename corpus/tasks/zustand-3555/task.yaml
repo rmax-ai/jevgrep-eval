@@ -1,0 +1,46 @@
+task_id: zustand-3555
+repo_id: pmndrs__zustand
+base_sha: f44cecc72a8ec39fbd270fc29e2058806932bf2a
+gold_sha: 3febf8c6d4f6670f886cc6b628b01a128d2888bd
+fix_ref: https://github.com/pmndrs/zustand/pull/3555
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: ClearStorage() should invalidate
+  concurrent async rehydration. Preserve the established public API and behavior outside
+  that case.'
+changed_files: &id001
+- src/middleware/persist.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zustand-3555/hidden_tests.patch
+test_runner: vitest
+test_command:
+- pnpm
+- exec
+- vitest
+- run
+- tests/persistAsync.test.tsx
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/pmndrs__zustand/pnpm-store
+expected_test_seconds: 60.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/zustand-3555/gold.patch
+  sha256: e2fd963f5ec29e2894d1cebbe5d430e4f77746a6c49a633f5213025cee8cf4a2
+  role: evaluator-gold-patch
+- path: tasks/zustand-3555/hidden_tests.patch
+  sha256: 153a1c00275ec2edf6c5cc029c44ed534082c61aedacd1c9052e8e0bd5287fe4
+  role: evaluator-hidden-tests
+- path: tasks/zustand-3555/admission.json
+  sha256: 67f28e1f4383d980cd6c574e40f9b84a4455fbfb7febb39f36ea7bdcb98023eb
+  role: admission-evidence
+- path: tasks/zustand-3555/sanitization.md
+  sha256: c42c2ef346bd4cd5f740e38372f1b1eea583aed7bb532b7dbdab242fd77a127f
+  role: sanitization-review
+- path: tasks/zustand-3555/gold-evidence.json
+  sha256: e9fc045f17bcb63971563e90f664cd22fca910d9363aea5b7241ad242e77d292
+  role: evaluator-gold-evidence

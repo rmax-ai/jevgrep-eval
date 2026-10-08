@@ -1,0 +1,51 @@
+task_id: zod-6587
+repo_id: colinhacks__zod
+base_sha: 0c483c58849fdb6445aea4f54b1bac6b57ab3d22
+gold_sha: 9446b5cc14c5bf137790f1f66abf602044871223
+fix_ref: https://github.com/colinhacks/zod/pull/6587
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Undefined prefault outputs
+  and object keys. Preserve the established public API and behavior outside that case.'
+changed_files: &id001
+- packages/zod/src/v4/core/compile.ts
+- packages/zod/src/v4/core/schemas.ts
+- packages/zod/src/v4/mini/schemas.ts
+gold_evidence_files: *id001
+hidden_test_patch: tasks/zod-6587/hidden_tests.patch
+test_runner: vitest
+test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/prefault.test.ts
+- packages/zod/src/v4/mini/tests/index.test.ts
+setup_commands:
+- copy staged node_modules overlay; pnpm store dep-cache/colinhacks__zod/pnpm-store
+expected_test_seconds: 60.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+- typed-runtime
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/zod-6587/gold.patch
+  sha256: 246bf9fdf376db5d764c24f98ccb98628c19de511659c6ad7a9e3157dc109cf5
+  role: evaluator-gold-patch
+- path: tasks/zod-6587/hidden_tests.patch
+  sha256: ad103a28aca9bb15a4ad2323e69b7fc560df0428ad256c46331a1d5dc189e4c8
+  role: evaluator-hidden-tests
+- path: tasks/zod-6587/admission.json
+  sha256: dd530cffba052de2e7d4c9ce73bb5fba55780be13ed7211ef0bd85ec76f80949
+  role: admission-evidence
+- path: tasks/zod-6587/sanitization.md
+  sha256: d3545c95369fac2c2601ae58ccaa73aabb96e879e6e46a55428601fefe42b42d
+  role: sanitization-review
+- path: tasks/zod-6587/gold-evidence.json
+  sha256: 28e6ed5464f96b99933c351e1d2abf969fde9305295e387e8c41875938de7f38
+  role: evaluator-gold-evidence
+hidden_test_command:
+- node_modules/.bin/vitest
+- run
+- packages/zod/src/v4/classic/tests/prefault.test.ts
+- packages/zod/src/v4/mini/tests/index.test.ts

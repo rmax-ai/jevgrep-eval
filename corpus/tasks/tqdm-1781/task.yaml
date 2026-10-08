@@ -1,0 +1,55 @@
+task_id: tqdm-1781
+repo_id: tqdm__tqdm
+base_sha: 6ab24dcc5df910044f1f6e0685f95dbf9cd424f3
+gold_sha: 93370ff891582e458c40196ea78a1a9d720fbb45
+fix_ref: https://github.com/tqdm/tqdm/pull/1781
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Format_meter OverflowError
+  when total is inf. Preserve the established public API and behavior outside that
+  case.'
+changed_files: &id001
+- tqdm/std.py
+gold_evidence_files: *id001
+hidden_test_patch: tasks/tqdm-1781/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -o
+- addopts=
+- -q
+- tests/tests_utils.py
+setup_commands:
+- python -m pytest -q -m 'not slow'; staged cache injection via dep-cache/tqdm__tqdm/uv
+expected_test_seconds: 30.0
+stratum: cross-file-indirection
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: admitted
+split: holdout
+manifest:
+- path: tasks/tqdm-1781/gold.patch
+  sha256: f7e27d786b8bd5fff8b81457d4d1e18f309074e48a82f6abd63ad33aedf218a4
+  role: evaluator-gold-patch
+- path: tasks/tqdm-1781/hidden_tests.patch
+  sha256: 21673fc2f21327de1a74579e49a419a21cc774bb08f5445b5730946c06cf6092
+  role: evaluator-hidden-tests
+- path: tasks/tqdm-1781/admission.json
+  sha256: 3c107c83c9adbf20273634981dc811192073627ed6de1b926156469b5c01f572
+  role: admission-evidence
+- path: tasks/tqdm-1781/sanitization.md
+  sha256: c6a445b61fbeae2163426ada87d8174b57482fbc220e001f5bf0336e1c390699
+  role: sanitization-review
+- path: tasks/tqdm-1781/gold-evidence.json
+  sha256: f8c822af4c703829fb40397cab63ba96bd5f7bb9cd5dbf14f4fe6446b2675004
+  role: evaluator-gold-evidence
+hidden_test_command:
+- python
+- -m
+- pytest
+- -o
+- addopts=
+- -q
+- tests/tests_tqdm.py

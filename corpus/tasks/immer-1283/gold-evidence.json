@@ -1,0 +1,1 @@
+{"files":["src/plugins/arrayMethods.ts"],"gold_patch_sha256":"a8038c2a6e5de34fbc33a71c3465cd0e22cc813193f75489f1b6591ad8556fa7","gold_sha":"d2c158f5bac7081a760bbaf501ea5c360b7856e1","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"immer-1283"}

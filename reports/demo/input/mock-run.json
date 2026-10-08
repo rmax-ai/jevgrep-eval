@@ -1,0 +1,8 @@
+{
+  "run_id": "mock-demo-001",
+  "label": "simulated-fixture",
+  "protocol": "demonstration-only",
+  "task_success": false,
+  "trace_coverage": "partial",
+  "notes": "Mechanics fixture; not retriever or model quality evidence."
+}

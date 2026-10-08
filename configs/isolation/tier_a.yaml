@@ -1,0 +1,17 @@
+tier: A
+unshare_net: true
+unshare_user: true
+readonly_binds: [/usr/lib, /lib, /usr/local/lib]
+# Base toolchain — validated live Stage-0.5 V4 (2026-09-29): connectivity-fail,
+# deny-read, python+pytest smoke (1 passed), rg/grep/sed/find sanity, group-kill quiescence.
+binaries: [/usr/bin/grep, /usr/bin/find, /usr/bin/sed, /usr/bin/awk, /usr/bin/mawk,
+           /usr/bin/cat, /usr/bin/head, /usr/bin/tail, /usr/bin/ls, /usr/bin/wc,
+           /usr/bin/python3, /usr/bin/python3.13, /usr/bin/bash, /usr/bin/env, /usr/bin/id]
+# Host bindings — placeholders resolved by the run host's harness (V4 notes; ~-relative
+# paths bind at their real locations; the workspace venv binds read-only with the workspace).
+host_bindings:
+  ripgrep: "<tools>/rg"                                # ripgrep 14.1.1 (not /usr/bin/rg on the run host)
+  uv_python_alias: "<uv>/python/cpython-3.12-linux-aarch64-gnu"
+  uv_python_real: "<uv>/python/cpython-3.12.13-linux-aarch64-gnu"
+  workspace_venv: "<workspace>/.venv"
+validation: "V4 2026-09-29 PASS"

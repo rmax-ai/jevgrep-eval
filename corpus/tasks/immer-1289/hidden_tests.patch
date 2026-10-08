@@ -1,0 +1,179 @@
+diff --git a/__tests__/base.js b/__tests__/base.js
+index 51a7a29a566682e4e08ef61220c8714fc4451230..c76e359cb72cb253c9b1a3966138cdfd29232a18 100644
+--- a/__tests__/base.js
++++ b/__tests__/base.js
+@@ -60,7 +60,7 @@ function runBaseTest(
+ 	useListener,
+ 	useArrayMethods = false
+ ) {
+-	const listener = useListener ? function () {} : undefined
++	const listener = useListener ? function() {} : undefined
+ 
+ 	const {produce, produceWithPatches} = createPatchedImmer({
+ 		autoFreeze,
+@@ -73,7 +73,7 @@ function runBaseTest(
+ 		const immer = new Immer(options)
+ 
+ 		const {produce} = immer
+-		immer.produce = function (...args) {
++		immer.produce = function(...args) {
+ 			return typeof args[1] === "function" && args.length < 3
+ 				? produce(...args, listener)
+ 				: produce(...args)
+@@ -292,6 +292,81 @@ function runBaseTest(
+ 			})
+ 
+ 			describe("mutating array methods", () => {
++				describe("no-op calls preserve structural sharing", () => {
++					it("push() with no arguments returns the base", () => {
++						const base = {list: [1, 2, 3], keep: {x: 1}}
++						const [next, patches] = produceWithPatches(base, d => {
++							d.list.push(...[])
++						})
++						expect(next).toBe(base)
++						expect(next.keep).toBe(base.keep)
++						expect(patches).toHaveLength(0)
++					})
++
++					it("unshift() with no arguments returns the base", () => {
++						const base = {list: [1, 2, 3]}
++						const next = produce(base, d => {
++							d.list.unshift()
++						})
++						expect(next).toBe(base)
++					})
++
++					it("splice() that removes and inserts nothing returns the base", () => {
++						const base = {list: [1, 2, 3]}
++						const [next, patches] = produceWithPatches(base, d => {
++							d.list.splice(1, 0)
++						})
++						expect(next).toBe(base)
++						expect(patches).toHaveLength(0)
++					})
++
++					it("pop()/shift() on an empty array return the base", () => {
++						const base = {popped: [], shifted: []}
++						const next = produce(base, d => {
++							d.popped.pop()
++							d.shifted.shift()
++						})
++						expect(next).toBe(base)
++					})
++
++					it("no-op push() on an array inside a Set preserves the array's identity", () => {
++						const arr = [1, 2, 3]
++						const base = new Set([arr, {x: 1}])
++						const next = produce(base, d => {
++							for (const v of d) {
++								if (Array.isArray(v)) v.push(...[])
++								else v.x = 2
++							}
++						})
++						expect(next).not.toBe(base)
++						expect([...next].find(Array.isArray)).toBe(arr)
++					})
++
++					it("sort()/reverse() on arrays with fewer than two elements return the base", () => {
++						const base = {empty: [], single: [1]}
++						const next = produce(base, d => {
++							d.empty.sort()
++							d.empty.reverse()
++							d.single.sort((a, b) => a - b)
++							d.single.reverse()
++						})
++						expect(next).toBe(base)
++					})
++
++					it("no-op splice() on an array inside a Set preserves the array's identity", () => {
++						const arr = [1, 2, 3]
++						const base = new Set([arr, {x: 1}])
++						const next = produce(base, d => {
++							for (const v of d) {
++								if (Array.isArray(v)) v.splice(1, 0)
++								else v.x = 2
++							}
++						})
++						expect(next).not.toBe(base)
++						expect([...next].find(Array.isArray)).toBe(arr)
++					})
++				})
++
+ 				// Reported here: https://github.com/mweststrate/immer/issues/116
+ 				it("can pop then push", () => {
+ 					const nextState = produce([1, 2, 3], s => {
+@@ -3229,13 +3304,13 @@ function runBaseTest(
+ 
+ 		it("'this' should not be bound anymore - 1", () => {
+ 			const base = {x: 3}
+-			const next1 = produce(base, function () {
++			const next1 = produce(base, function() {
+ 				expect(this).toBe(undefined)
+ 			})
+ 		})
+ 
+ 		it("'this' should not be bound anymore - 2", () => {
+-			const incrementor = produce(function () {
++			const incrementor = produce(function() {
+ 				expect(this).toBe(undefined)
+ 			})
+ 			incrementor()
+@@ -3244,7 +3319,7 @@ function runBaseTest(
+ 		it("should be possible to use dynamic bound this", () => {
+ 			const world = {
+ 				counter: {count: 1},
+-				inc: produce(function (draft) {
++				inc: produce(function(draft) {
+ 					expect(this).toBe(world)
+ 					draft.counter.count = this.counter.count + 1
+ 				})
+diff --git a/__tests__/map-set.js b/__tests__/map-set.js
+index a8672a60ac9833d7781d276956f8344af0addf71..1a485e1102f06bb006196b6cf95c28a2b420cf68 100644
+--- a/__tests__/map-set.js
++++ b/__tests__/map-set.js
+@@ -23,7 +23,7 @@ runBaseTest("proxy (autofreeze)", true, true)
+ runBaseTest("proxy (autofreeze)(patch listener)", true, true, true)
+ 
+ function runBaseTest(name, autoFreeze, useListener) {
+-	const listener = useListener ? function () {} : undefined
++	const listener = useListener ? function() {} : undefined
+ 	const {produce, produceWithPatches} = createPatchedImmer({
+ 		autoFreeze
+ 	})
+@@ -34,7 +34,7 @@ function runBaseTest(name, autoFreeze, useListener) {
+ 		const immer = new Immer(options)
+ 
+ 		const {produce} = immer
+-		immer.produce = function (...args) {
++		immer.produce = function(...args) {
+ 			return typeof args[1] === "function" && args.length < 3
+ 				? produce(...args, listener)
+ 				: produce(...args)
+@@ -395,6 +395,27 @@ function runBaseTest(name, autoFreeze, useListener) {
+ 
+ 			expect(Array.from(newSet)).toEqual([objs[0], objs[1]])
+ 		})
++
++		test("reading (but not modifying) a nested object inside a Set does not leak the copy", () => {
++			const untouched = {nested: {a: 1}}
++			const base = new Set([untouched, {x: 1}])
++			const next = produce(base, draft => {
++				for (const v of draft) {
++					if (v.nested) {
++						// Read only - creates a child draft (and a stray copy_
++						// on the parent) but modifies nothing
++						expect(v.nested.a).toBe(1)
++					} else {
++						v.x = 2
++					}
++				}
++			})
++			expect(next).not.toBe(base)
++			const finalUntouched = Array.from(next).find(v => v.nested)
++			expect(finalUntouched).toBe(untouched)
++			expect(finalUntouched.nested.a).toBe(1)
++			expect(isDraft(finalUntouched.nested)).toBe(false)
++		})
+ 	})
+ }
+ 

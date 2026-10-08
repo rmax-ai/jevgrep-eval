@@ -1,0 +1,45 @@
+task_id: attrs-1381
+repo_id: python-attrs__attrs
+base_sha: 160f5d8b97b3af606dca4c1fbb00ca9248366f75
+gold_sha: 2a76643e36aa7e07d13f9438857a7cff48b4a1d6
+fix_ref: https://github.com/python-attrs/attrs/pull/1381
+task_class: historical-public-regression
+statement: 'Investigate the reported behavioral edge case: Pyright tests to match
+  expected pyright output after pyright 1.1.380. Preserve the established public API
+  and behavior outside that case.'
+changed_files: &id001
+- tox.ini
+gold_evidence_files: *id001
+hidden_test_patch: tasks/attrs-1381/hidden_tests.patch
+test_runner: pytest
+test_command:
+- python
+- -m
+- pytest
+- -q
+- tests/test_pyright.py
+setup_commands:
+- python -m pytest -q; staged cache injection via dep-cache/python-attrs__attrs/uv
+expected_test_seconds: 30.0
+stratum: lexical-easy
+secondary_tags:
+- public-regression
+- historical-fix
+admission_status: rejected
+split: holdout
+manifest:
+- path: tasks/attrs-1381/gold.patch
+  sha256: 7f909414f1755e0859a2ed842d09bfcab5e67b9fc1591ffa7b4a5ae3b741598c
+  role: evaluator-gold-patch
+- path: tasks/attrs-1381/hidden_tests.patch
+  sha256: 64e716c90e74c0f92c265891f5378dc47acc6adf8ddf0eb59c228891d90a74cc
+  role: evaluator-hidden-tests
+- path: tasks/attrs-1381/admission.json
+  sha256: 3e2ba9562b67e10d9386b3cdb96cb6da500073f3c952cc30e370706ab09db848
+  role: admission-evidence
+- path: tasks/attrs-1381/sanitization.md
+  sha256: 4ec0f3886b02a990ff14312a10050c93d6dfd41c7f799d5fceffbb787d56f700
+  role: sanitization-review
+- path: tasks/attrs-1381/gold-evidence.json
+  sha256: c1c6d0cc9947076b0a2a7856d24666ff63492d2fea2b169f1b9595ebc1a65554
+  role: evaluator-gold-evidence

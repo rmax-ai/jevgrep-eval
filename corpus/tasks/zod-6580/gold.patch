@@ -1,0 +1,22 @@
+diff --git a/packages/zod/src/v4/core/schemas.ts b/packages/zod/src/v4/core/schemas.ts
+index 0c549e0a0bc6852f5c74a3eb0183ec44fac7e7e9..be3bc0db5aa20e34726ae7c181c34fdc83837204 100644
+--- a/packages/zod/src/v4/core/schemas.ts
++++ b/packages/zod/src/v4/core/schemas.ts
+@@ -1893,7 +1893,7 @@ type OptionalInSchema = { _zod: { optin: "optional" | "defaulted" } };
+ export type $InferObjectOutput<T extends $ZodLooseShape, Extra extends Record<string, unknown>> = string extends keyof T
+   ? util.IsAny<T[keyof T]> extends true
+     ? Record<string, unknown>
+-    : Record<string, core.output<T[keyof T]>>
++    : { [k in string]: core.output<T[keyof T]> }
+   : keyof (T & Extra) extends never
+     ? Record<string, never>
+     : util.Prettify<
+@@ -1937,7 +1937,7 @@ export type $InferObjectOutput<T extends $ZodLooseShape, Extra extends Record<st
+ export type $InferObjectInput<T extends $ZodLooseShape, Extra extends Record<string, unknown>> = string extends keyof T
+   ? util.IsAny<T[keyof T]> extends true
+     ? Record<string, unknown>
+-    : Record<string, core.input<T[keyof T]>>
++    : { [k in string]: core.input<T[keyof T]> }
+   : keyof (T & Extra) extends never
+     ? Record<string, never>
+     : util.Prettify<

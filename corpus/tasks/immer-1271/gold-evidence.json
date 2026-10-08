@@ -1,0 +1,1 @@
+{"files":["src/core/proxy.ts"],"gold_patch_sha256":"8a5cb27102aeeff557072c3485fbb8d09bbf3a8ba8456be02a0a8f8abff2f833","gold_sha":"4d3d6ff88caa85734a802a91cdb3dbe004d88b17","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"immer-1271"}

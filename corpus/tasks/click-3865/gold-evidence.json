@@ -1,0 +1,1 @@
+{"files":["src/click/utils.py"],"gold_patch_sha256":"737f86eead112c341b2200d0dcb086b4162afc6ab0dcaabb96bf5550e5fac973","gold_sha":"70689853e39c30e36eb0d83d586cc914a74db9d3","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"click-3865"}

@@ -1,0 +1,65 @@
+diff --git a/source/types/options.ts b/source/types/options.ts
+index bd0700c9483ddb6aace3ff5d1969c919d9367227..2fa6e1b66bcc30d0d6604df41511f6a9519c5b77 100644
+--- a/source/types/options.ts
++++ b/source/types/options.ts
+@@ -25,7 +25,7 @@ export type Progress = {
+ 	transferredBytes: number;
+ 
+ 	/**
+-	The total number of bytes to be transferred. This is an estimate and may be `0` if the total size cannot be determined.
++	The total number of bytes to be transferred. This is an estimate and may be `0` for an empty transfer or when the total size cannot be determined.
+ 	*/
+ 	totalBytes: number;
+ };
+@@ -256,7 +256,7 @@ export type KyOptions = {
+ 	Download progress event handler.
+ 
+ 	@param progress - Object containing download progress information.
+-	@param chunk - Data that was received. Note: It's empty for the first call.
++	@param chunk - Data that was received. When an empty response body stream completes, the callback receives an empty chunk.
+ 
+ 	@example
+ 	```
+@@ -265,7 +265,6 @@ export type KyOptions = {
+ 	const response = await ky('https://example.com', {
+ 		onDownloadProgress: (progress, chunk) => {
+ 			// Example output:
+-			// `0% - 0 of 1271 bytes`
+ 			// `100% - 1271 of 1271 bytes`
+ 			console.log(`${progress.percent * 100}% - ${progress.transferredBytes} of ${progress.totalBytes} bytes`);
+ 		}
+@@ -280,7 +279,7 @@ export type KyOptions = {
+ 	Note: Requires [request stream support](https://caniuse.com/wf-fetch-request-streams) and HTTP/2 for HTTPS connections (in Chromium-based browsers). In unsupported environments, this handler is silently ignored.
+ 
+ 	@param progress - Object containing upload progress information.
+-	@param chunk - Data that was sent. Note: It's empty for the last call.
++	@param chunk - Data that was sent. When an empty request body stream completes, the callback receives an empty chunk.
+ 
+ 	@example
+ 	```
+@@ -290,7 +289,6 @@ export type KyOptions = {
+ 		body: largeFile,
+ 		onUploadProgress: (progress, chunk) => {
+ 			// Example output:
+-			// `0% - 0 of 1271 bytes`
+ 			// `100% - 1271 of 1271 bytes`
+ 			console.log(`${progress.percent * 100}% - ${progress.transferredBytes} of ${progress.totalBytes} bytes`);
+ 		}
+diff --git a/source/utils/body.ts b/source/utils/body.ts
+index c3ba19cbe9c519a42d3c34d6764cf7ccf715c923..b83d9a7ea84d2f27ca1b8da3793f76f41739b98e 100644
+--- a/source/utils/body.ts
++++ b/source/utils/body.ts
+@@ -68,10 +68,9 @@ const withProgress = (stream: ReadableStream<Uint8Array>, totalBytes: number, on
+ 			previousChunk = currentChunk;
+ 		},
+ 		flush() {
+-			if (previousChunk) {
+-				transferredBytes += previousChunk.byteLength;
+-				onProgress?.({percent: 1, totalBytes: Math.max(totalBytes, transferredBytes), transferredBytes}, previousChunk);
+-			}
++			const finalChunk = previousChunk ?? new Uint8Array();
++			transferredBytes += finalChunk.byteLength;
++			onProgress?.({percent: 1, totalBytes: Math.max(totalBytes, transferredBytes), transferredBytes}, finalChunk);
+ 		},
+ 	}));
+ };

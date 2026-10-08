@@ -1,0 +1,22 @@
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 571535fe7998dcc7a747266f4461f96fcea3c2d3..2cea2fe8d9e9f4c1a32b5e8acaf3c942f3359b83 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -1087,6 +1087,17 @@ class TestRequests:
+             )
+         assert r.status_code == 200
+ 
++    def test_post_named_tempfile(self, httpbin):
++        with tempfile.NamedTemporaryFile(mode="w+") as f:
++            f.write("named temp file contents\n")
++            f.seek(0)
++            r = requests.post(
++                httpbin("post"),
++                files={"file": f},
++            )
++        assert r.status_code == 200
++        assert r.json()["files"]["file"] == "named temp file contents\n"
++
+     @pytest.mark.parametrize(
+         "data",
+         (

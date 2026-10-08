@@ -1,0 +1,1 @@
+{"files":["tqdm/contrib/concurrent.py"],"gold_patch_sha256":"513e033350d07121b696849b88746427946c5a0e2d97098a6d19c13bb342ca9a","gold_sha":"9cf5a12b1f955468a17f0ba3c59092b23e4258ac","rationale":"Evaluator-only evidence records the exact source files changed by the frozen public fix; it is not part of the agent workspace.","symbols":[],"task_id":"tqdm-1830"}

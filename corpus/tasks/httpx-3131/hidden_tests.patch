@@ -1,0 +1,39 @@
+diff --git a/tests/client/test_auth.py b/tests/client/test_auth.py
+index e6bac23dfc487681b8335e316babe55cf0716f0b..5776fc33ba19e72d9a0ad44b9902d6cf7af98466 100644
+--- a/tests/client/test_auth.py
++++ b/tests/client/test_auth.py
+@@ -3,6 +3,7 @@ Integration tests for authentication.
+ 
+ Unit tests for auth classes also exist in tests/test_auth.py
+ """
++
+ import hashlib
+ import netrc
+ import os
+diff --git a/tests/test_auth.py b/tests/test_auth.py
+index 7bb45de5663dbd768eaa98296092420e1b06c90e..6b6df922ead467fb5ca147140941297f52360860 100644
+--- a/tests/test_auth.py
++++ b/tests/test_auth.py
+@@ -3,6 +3,7 @@ Unit tests for auth classes.
+ 
+ Integration tests also exist in tests/client/test_auth.py
+ """
++
+ from urllib.request import parse_keqv_list
+ 
+ import pytest
+diff --git a/tests/test_multipart.py b/tests/test_multipart.py
+index 5c4629152c09d93ff8ca50331761e9ae41af2b06..764f85a253076731d802dc2a81af8e226c0a31f7 100644
+--- a/tests/test_multipart.py
++++ b/tests/test_multipart.py
+@@ -462,8 +462,8 @@ class TestHeaderParamHTML5Formatting:
+         assert expected in request.read()
+ 
+     def test_unicode_with_control_character(self):
+-        filename = "hello\x1A\x1B\x1C"
+-        expected = b'filename="hello%1A\x1B%1C"'
++        filename = "hello\x1a\x1b\x1c"
++        expected = b'filename="hello%1A\x1b%1C"'
+         files = {"upload": (filename, b"<file content>")}
+         request = httpx.Request("GET", "https://www.example.com", files=files)
+         assert expected in request.read()
